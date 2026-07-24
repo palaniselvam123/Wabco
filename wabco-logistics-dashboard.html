@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WABCO — Logistics Intelligence Center</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --primary:#0d1f3c;--primary-light:#1a3a6c;--accent:#f07c2c;
+  --success:#10b981;--warning:#f59e0b;--danger:#ef4444;--info:#3b82f6;--purple:#8b5cf6;
+  --bg:#f0f4fa;--card:#fff;--border:#e2e8f0;
+  --text:#1e293b;--muted:#64748b;--light:#94a3b8;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 4px 16px rgba(0,0,0,.06);
+  --shadow-lg:0 8px 30px rgba(0,0,0,.12);
+  --r:12px;--rs:8px;
+  --font:'Segoe UI',system-ui,-apple-system,sans-serif
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;min-height:100vh}
+
+/* ─── LOGIN ─────────────────────────────────────────── */
+#loginPage{min-height:100vh;display:flex;background:linear-gradient(135deg,#0d1f3c 0%,#1a3a6c 45%,#0d2d5a 100%);position:relative;overflow:hidden}
+#loginPage::before{content:'';position:absolute;top:-30%;right:-15%;width:550px;height:550px;background:radial-gradient(circle,rgba(240,124,44,.18) 0%,transparent 70%);border-radius:50%}
+#loginPage::after{content:'';position:absolute;bottom:-20%;left:-10%;width:450px;height:450px;background:radial-gradient(circle,rgba(59,130,246,.12) 0%,transparent 70%);border-radius:50%}
+
+.login-left{flex:1;display:flex;flex-direction:column;justify-content:center;padding:64px;position:relative;z-index:1}
+.login-badge{display:inline-flex;align-items:center;gap:10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:50px;padding:7px 18px 7px 7px;margin-bottom:28px}
+.login-badge-icon{width:32px;height:32px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px}
+.login-badge span{color:rgba(255,255,255,.75);font-size:11.5px;font-weight:600;letter-spacing:.5px}
+.login-hero{font-size:50px;font-weight:800;color:#fff;line-height:1.15;margin-bottom:14px;letter-spacing:-1px}
+.login-hero em{color:var(--accent);font-style:normal}
+.login-desc{font-size:16px;color:rgba(255,255,255,.5);max-width:400px;line-height:1.75}
+.login-stats{display:flex;gap:36px;margin-top:48px}
+.lst-val{font-size:28px;font-weight:800;color:#fff}
+.lst-lbl{font-size:10.5px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:1px;margin-top:3px}
+.lst-div{width:1px;background:rgba(255,255,255,.1);align-self:stretch}
+
+.login-right{width:460px;display:flex;align-items:center;justify-content:center;padding:40px;position:relative;z-index:1}
+.login-card{background:rgba(255,255,255,.97);border-radius:22px;padding:46px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.28)}
+.lc-head h2{font-size:25px;font-weight:700;color:var(--primary);margin-bottom:5px}
+.lc-head p{color:var(--muted);font-size:13.5px;margin-bottom:28px}
+.fg{margin-bottom:18px}
+.fg label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:7px}
+.fg input{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--rs);font-size:14px;color:var(--text);background:#f8fafc;transition:.2s;outline:none;font-family:var(--font)}
+.fg input:focus{border-color:var(--primary-light);background:#fff;box-shadow:0 0 0 3px rgba(26,58,108,.1)}
+.btn-login{width:100%;padding:13px;background:linear-gradient(135deg,var(--primary),var(--primary-light));color:#fff;border:none;border-radius:var(--rs);font-size:15px;font-weight:600;cursor:pointer;transition:.2s;letter-spacing:.3px;margin-top:4px}
+.btn-login:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(13,31,60,.35)}
+.login-err{color:var(--danger);font-size:12.5px;margin-top:9px;text-align:center;display:none}
+.login-hint{text-align:center;margin-top:22px;padding-top:18px;border-top:1px solid var(--border);color:var(--muted);font-size:12px}
+.login-hint code{background:#f1f5f9;padding:2px 6px;border-radius:4px;font-family:monospace;color:var(--primary);font-size:11px}
+
+/* ─── NAVBAR ──────────────────────────────────────── */
+#navbar{position:sticky;top:0;z-index:100;background:var(--primary);color:#fff;padding:0 28px;height:60px;display:flex;align-items:center;gap:20px;box-shadow:0 2px 12px rgba(0,0,0,.2)}
+.nav-logo{display:flex;align-items:center;gap:9px;color:#fff;font-size:17px;font-weight:700;letter-spacing:-.4px;cursor:default;user-select:none}
+.nav-logo-icon{width:30px;height:30px;background:var(--accent);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px}
+.nav-logo em{color:var(--accent);font-style:normal}
+.nav-sep{width:1px;height:22px;background:rgba(255,255,255,.15)}
+.nav-links{display:flex;gap:3px;flex:1}
+.nav-link{padding:5px 13px;border-radius:7px;color:rgba(255,255,255,.6);font-size:13px;font-weight:500;transition:.15s;cursor:pointer;border:none;background:none;display:flex;align-items:center;gap:5px}
+.nav-link:hover,.nav-link.active{background:rgba(255,255,255,.12);color:#fff}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:14px}
+.nav-date{font-size:11.5px;color:rgba(255,255,255,.45)}
+.nav-user{display:flex;align-items:center;gap:7px;color:rgba(255,255,255,.8);font-size:13px;font-weight:500}
+.nav-avatar{width:30px;height:30px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff}
+.btn-logout{padding:5px 12px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.14);border-radius:7px;color:rgba(255,255,255,.75);cursor:pointer;font-size:12px;font-weight:500;transition:.15s}
+.btn-logout:hover{background:rgba(255,255,255,.16);color:#fff}
+
+/* ─── LAYOUT ──────────────────────────────────────── */
+.pg{padding:26px 30px;max-width:1640px;margin:0 auto}
+.pg-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:22px;gap:16px;flex-wrap:wrap}
+.pg-title{font-size:21px;font-weight:700;color:var(--primary)}
+.pg-sub{font-size:12.5px;color:var(--muted);margin-top:3px}
+
+/* ─── UPLOAD WIDGET ──────────────────────────────── */
+.upload-chip{background:#fff;border-radius:var(--r);padding:14px 18px;border:1px solid var(--border);box-shadow:var(--shadow);display:flex;align-items:center;gap:14px}
+.upload-chip-icon{width:38px;height:38px;background:linear-gradient(135deg,#e0f2fe,#dbeafe);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.upload-chip h4{font-size:13px;font-weight:600;color:var(--primary);margin-bottom:1px}
+.upload-chip p{font-size:11px;color:var(--muted)}
+.btn-upload{padding:8px 16px;background:var(--primary);color:#fff;border:none;border-radius:var(--rs);font-size:12.5px;font-weight:600;cursor:pointer;transition:.2s;display:flex;align-items:center;gap:5px;white-space:nowrap}
+.btn-upload:hover{background:var(--primary-light);transform:translateY(-1px)}
+#fileInput{display:none}
+#uploadBanner{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 16px;margin-bottom:14px;font-size:13px;color:#166534;display:none;align-items:center;gap:8px}
+
+/* ─── KPI CARDS ───────────────────────────────────── */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:14px;margin-bottom:20px}
+.kpi-grid-sm{grid-template-columns:repeat(4,1fr)}
+.kpi-card{background:var(--card);border-radius:var(--r);padding:20px;box-shadow:var(--shadow);border:1px solid var(--border);position:relative;overflow:hidden;transition:transform .2s,box-shadow .2s}
+.kpi-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--r) var(--r) 0 0}
+.kpi-card.c-blue::before{background:linear-gradient(90deg,#3b82f6,#60a5fa)}
+.kpi-card.c-org::before{background:linear-gradient(90deg,#f07c2c,#f9a55a)}
+.kpi-card.c-grn::before{background:linear-gradient(90deg,#10b981,#34d399)}
+.kpi-card.c-red::before{background:linear-gradient(90deg,#ef4444,#f87171)}
+.kpi-card.c-pur::before{background:linear-gradient(90deg,#8b5cf6,#a78bfa)}
+.kpi-card.c-teal::before{background:linear-gradient(90deg,#14b8a6,#2dd4bf)}
+.kpi-icon{position:absolute;top:18px;right:18px;width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px}
+.kpi-icon.c-blue{background:#eff6ff}.kpi-icon.c-org{background:#fff7ed}.kpi-icon.c-grn{background:#f0fdf4}
+.kpi-icon.c-red{background:#fef2f2}.kpi-icon.c-pur{background:#faf5ff}.kpi-icon.c-teal{background:#f0fdfa}
+.kpi-lbl{font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:9px;display:flex;align-items:center;gap:5px}
+.kpi-val{font-size:30px;font-weight:800;color:var(--primary);line-height:1;margin-bottom:7px}
+.kpi-val.sm{font-size:21px}
+.kpi-sub{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.trend{display:inline-flex;align-items:center;gap:2px;font-size:10.5px;font-weight:600;padding:2px 6px;border-radius:4px}
+.trend.up{background:#dcfce7;color:#16a34a}.trend.down{background:#fee2e2;color:#dc2626}.trend.neu{background:#f1f5f9;color:#64748b}
+
+/* ─── CHART CARDS ─────────────────────────────────── */
+.charts-row{display:grid;gap:14px;margin-bottom:20px}
+.cr2{grid-template-columns:2fr 1fr}
+.cr3{grid-template-columns:2fr 1fr 1fr}
+.chart-card{background:var(--card);border-radius:var(--r);padding:22px;box-shadow:var(--shadow);border:1px solid var(--border)}
+.chart-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px}
+.chart-title{font-size:13.5px;font-weight:700;color:var(--primary)}
+.chart-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.chart-badge{font-size:10.5px;padding:2px 7px;border-radius:5px;font-weight:600;background:#f1f5f9;color:var(--muted);white-space:nowrap}
+canvas{max-height:240px!important}
+
+/* ─── TABLE STYLES ────────────────────────────────── */
+.table-card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);border:1px solid var(--border);margin-bottom:20px;overflow:hidden}
+.table-head{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.table-head h3{font-size:13.5px;font-weight:700;color:var(--primary)}
+.table-actions{margin-left:auto;display:flex;gap:7px;align-items:center}
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{background:#f8fafc;color:var(--muted);font-weight:600;font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;padding:10px 14px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none;transition:color .15s}
+th:hover{color:var(--primary)}
+td{padding:10px 14px;border-bottom:1px solid #f1f5f9;color:var(--text);vertical-align:middle;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafbfc}
+
+/* ─── BADGES ──────────────────────────────────────── */
+.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:5px;font-size:11px;font-weight:600;white-space:nowrap}
+.b-grn{background:#dcfce7;color:#16a34a}
+.b-blue{background:#dbeafe;color:#1d4ed8}
+.b-org{background:#ffedd5;color:#c2410c}
+.b-red{background:#fee2e2;color:#dc2626}
+.b-gray{background:#f1f5f9;color:#475569}
+.b-pur{background:#ede9fe;color:#7c3aed}
+.b-teal{background:#ccfbf1;color:#0f766e}
+.b-yel{background:#fef9c3;color:#a16207}
+
+/* ─── FILTERS ─────────────────────────────────────── */
+.filter-bar{background:var(--card);border-radius:var(--r);padding:14px 20px;margin-bottom:14px;border:1px solid var(--border);box-shadow:var(--shadow);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.fg-inline{display:flex;align-items:center;gap:6px}
+.fg-inline label{font-size:10.5px;color:var(--muted);font-weight:700;white-space:nowrap;text-transform:uppercase;letter-spacing:.5px}
+.fg-inline select,.fg-inline input{padding:6px 9px;border:1px solid var(--border);border-radius:var(--rs);font-size:12.5px;color:var(--text);background:#f8fafc;outline:none;font-family:var(--font);min-width:120px;transition:border-color .2s}
+.fg-inline select:focus,.fg-inline input:focus{border-color:var(--primary-light)}
+.btn-sm{padding:6px 13px;border-radius:var(--rs);font-size:12px;font-weight:600;cursor:pointer;border:none;transition:.15s;display:flex;align-items:center;gap:4px}
+.btn-primary{background:var(--primary);color:#fff}.btn-primary:hover{background:var(--primary-light)}
+.btn-outline{background:#fff;color:var(--muted);border:1px solid var(--border)}.btn-outline:hover{border-color:var(--primary);color:var(--primary)}
+.btn-grn{background:var(--success);color:#fff}.btn-grn:hover{background:#059669}
+
+/* ─── PAGINATION ──────────────────────────────────── */
+.pagination{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-top:1px solid var(--border)}
+.pag-info{font-size:11.5px;color:var(--muted)}
+.pag-btns{display:flex;gap:3px}
+.page-btn{width:30px;height:30px;border:1px solid var(--border);background:#fff;border-radius:6px;cursor:pointer;font-size:12.5px;display:flex;align-items:center;justify-content:center;transition:.15s;color:var(--text)}
+.page-btn:hover{border-color:var(--primary);color:var(--primary)}
+.page-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+
+/* ─── LOADING ─────────────────────────────────────── */
+#loadingOverlay{position:fixed;inset:0;background:rgba(13,31,60,.82);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:999}
+.spinner{width:44px;height:44px;border:3px solid rgba(255,255,255,.15);border-top-color:var(--accent);border-radius:50%;animation:spin .75s linear infinite;margin-bottom:14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-txt{color:#fff;font-size:14px;font-weight:500}
+
+/* ─── UTILITY ─────────────────────────────────────── */
+.hidden{display:none!important}
+.tr{text-align:right}
+.mono{font-family:'Courier New',monospace;font-size:11.5px}
+.trunc{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px;display:inline-block}
+
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:#94a3b8}
+
+@media(max-width:1200px){.cr3{grid-template-columns:1fr 1fr}}
+@media(max-width:900px){.login-left,.cr2,.cr3{display:none}.login-right{width:100%}.kpi-grid{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-txt">Processing your Excel file…</div>
+</div>
+
+<!-- ══════════════════ LOGIN PAGE ══════════════════ -->
+<div id="loginPage">
+  <div class="login-left">
+    <div class="login-badge">
+      <div class="login-badge-icon">📦</div>
+      <span>WABCO INDIA LIMITED — AIR FREIGHT OPERATIONS</span>
+    </div>
+    <h1 class="login-hero">Logistics<br>Intelligence<br><em>Command Center</em></h1>
+    <p class="login-desc">
+      End-to-end visibility across air freight shipments, customs clearance,
+      duty management, and multi-plant delivery operations — FY 2026-27.
+    </p>
+    <div class="login-stats">
+      <div>
+        <div class="lst-val">608+</div>
+        <div class="lst-lbl">Deliveries FY 26-27</div>
+      </div>
+      <div class="lst-div"></div>
+      <div>
+        <div class="lst-val">29</div>
+        <div class="lst-lbl">Active Shipments</div>
+      </div>
+      <div class="lst-div"></div>
+      <div>
+        <div class="lst-val">₹1.94Cr</div>
+        <div class="lst-lbl">Total Freight Value</div>
+      </div>
+      <div class="lst-div"></div>
+      <div>
+        <div class="lst-val">28</div>
+        <div class="lst-lbl">Active Suppliers</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="login-right">
+    <div class="login-card">
+      <div class="lc-head">
+        <h2>Welcome Back</h2>
+        <p>Sign in to access the logistics dashboard</p>
+      </div>
+      <div class="fg">
+        <label>Username</label>
+        <input type="text" id="loginUser" placeholder="Enter username" value="admin" autocomplete="username">
+      </div>
+      <div class="fg">
+        <label>Password</label>
+        <input type="password" id="loginPass" placeholder="Enter password" autocomplete="current-password"
+          onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <button class="btn-login" onclick="doLogin()">Sign In to Dashboard →</button>
+      <div class="login-err" id="loginErr">Invalid credentials. Please try again.</div>
+      <div class="login-hint">
+        Demo access: <code>admin</code> / <code>wabco2026</code>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ APP SHELL ══════════════════ -->
+<div id="appShell" class="hidden">
+
+  <!-- Navbar -->
+  <nav id="navbar">
+    <div class="nav-logo">
+      <div class="nav-logo-icon">📦</div>
+      WABCO <em>Logistics</em>
+    </div>
+    <div class="nav-sep"></div>
+    <div class="nav-links">
+      <button class="nav-link active" id="navDash" onclick="showPage('dashboard')">📊 Dashboard</button>
+      <button class="nav-link" id="navDetails" onclick="showPage('details')">🚚 Active Shipments</button>
+      <button class="nav-link" id="navDelivered" onclick="showPage('delivered')">✅ Delivered</button>
+    </div>
+    <div class="nav-right">
+      <div class="nav-date" id="navDate"></div>
+      <div class="nav-user">
+        <div class="nav-avatar">A</div>
+        Administrator
+      </div>
+      <button class="btn-logout" onclick="doLogout()">Sign Out</button>
+    </div>
+  </nav>
+
+  <!-- ── DASHBOARD PAGE ── -->
+  <div id="dashboardPage">
+    <div class="pg">
+
+      <!-- Header + Upload -->
+      <div class="pg-head">
+        <div>
+          <div class="pg-title">Operations Dashboard</div>
+          <div class="pg-sub">WABCO AIR Freight Daily Report — FY 2026-27 &nbsp;|&nbsp; Data as of <span id="reportDate">23 Jul 2026</span></div>
+        </div>
+        <div class="upload-chip">
+          <div class="upload-chip-icon">📤</div>
+          <div>
+            <h4>Upload DSR Report</h4>
+            <p>Accepts .xlsb / .xlsx / .xls</p>
+          </div>
+          <div style="margin-left:10px">
+            <button class="btn-upload" onclick="document.getElementById('fileInput').click()">📂 Browse File</button>
+            <input type="file" id="fileInput" accept=".xlsb,.xlsx,.xls" onchange="handleUpload(event)">
+          </div>
+        </div>
+      </div>
+
+      <!-- Upload success banner -->
+      <div id="uploadBanner">
+        <span style="font-size:15px">✅</span>
+        <span id="uploadBannerTxt"></span>
+      </div>
+
+      <!-- KPI Row 1 -->
+      <div class="kpi-grid">
+        <div class="kpi-card c-org">
+          <div class="kpi-icon c-org">🚢</div>
+          <div class="kpi-lbl">Active Shipments</div>
+          <div class="kpi-val" id="kActive">29</div>
+          <div class="kpi-sub"><span class="trend neu">▶ Live</span> In-transit &amp; Customs</div>
+        </div>
+        <div class="kpi-card c-grn">
+          <div class="kpi-icon c-grn">✅</div>
+          <div class="kpi-lbl">Delivered This FY</div>
+          <div class="kpi-val" id="kDelivered">608</div>
+          <div class="kpi-sub"><span class="trend up">▲ FY 26-27</span> Completed deliveries</div>
+        </div>
+        <div class="kpi-card c-red">
+          <div class="kpi-icon c-red">⏳</div>
+          <div class="kpi-lbl">Duty Pending</div>
+          <div class="kpi-val" id="kDuty">22</div>
+          <div class="kpi-sub"><span class="trend down">▼ Action Req'd</span> PCV issued</div>
+        </div>
+        <div class="kpi-card c-blue">
+          <div class="kpi-icon c-blue">🛃</div>
+          <div class="kpi-lbl">Customs Cleared</div>
+          <div class="kpi-val" id="kCleared">7</div>
+          <div class="kpi-sub"><span class="trend up">▲ Ready</span> Awaiting delivery</div>
+        </div>
+        <div class="kpi-card c-pur">
+          <div class="kpi-icon c-pur">⚠️</div>
+          <div class="kpi-lbl">Long Pending</div>
+          <div class="kpi-val" id="kPending">20</div>
+          <div class="kpi-sub"><span class="trend down">▼ Urgent</span> Escalation needed</div>
+        </div>
+        <div class="kpi-card c-teal">
+          <div class="kpi-icon c-teal">💰</div>
+          <div class="kpi-lbl">Total Air Freight</div>
+          <div class="kpi-val sm" id="kFreight">₹1.94 Cr</div>
+          <div class="kpi-sub"><span class="trend neu">FY 2026-27</span> INR</div>
+        </div>
+      </div>
+
+      <!-- KPI Row 2 (mini) -->
+      <div class="kpi-grid kpi-grid-sm" style="margin-bottom:20px">
+        <div class="kpi-card c-blue" style="padding:16px 18px">
+          <div class="kpi-lbl" style="margin-bottom:6px">Total Packages</div>
+          <div class="kpi-val" style="font-size:22px" id="kPkgs">2,937</div>
+          <div class="kpi-sub">Delivered FY</div>
+        </div>
+        <div class="kpi-card c-grn" style="padding:16px 18px">
+          <div class="kpi-lbl" style="margin-bottom:6px">Total Weight</div>
+          <div class="kpi-val" style="font-size:22px" id="kWeight">2.0L kg</div>
+          <div class="kpi-sub">Delivered FY</div>
+        </div>
+        <div class="kpi-card c-org" style="padding:16px 18px">
+          <div class="kpi-lbl" style="margin-bottom:6px">Avg Freight / Shipment</div>
+          <div class="kpi-val" style="font-size:22px" id="kAvgFrt">₹31.9K</div>
+          <div class="kpi-sub">Per delivery</div>
+        </div>
+        <div class="kpi-card c-pur" style="padding:16px 18px">
+          <div class="kpi-lbl" style="margin-bottom:6px">Active Suppliers</div>
+          <div class="kpi-val" style="font-size:22px" id="kSuppliers">28</div>
+          <div class="kpi-sub">Unique vendors</div>
+        </div>
+      </div>
+
+      <!-- Charts Row 1: Monthly Trend + Forwarders -->
+      <div class="charts-row cr2">
+        <div class="chart-card">
+          <div class="chart-head">
+            <div><div class="chart-title">Monthly Delivery Trend</div><div class="chart-sub">Shipments vs Freight cost by month</div></div>
+            <div class="chart-badge">FY 2026-27</div>
+          </div>
+          <canvas id="cMonthly"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-head">
+            <div><div class="chart-title">Freight Forwarders</div><div class="chart-sub">Shipments by logistics partner</div></div>
+          </div>
+          <canvas id="cConsol"></canvas>
+        </div>
+      </div>
+
+      <!-- Charts Row 2: Suppliers + Plant + Customs Status -->
+      <div class="charts-row cr3">
+        <div class="chart-card">
+          <div class="chart-head">
+            <div><div class="chart-title">Top Suppliers by Volume</div><div class="chart-sub">Delivered shipments per vendor</div></div>
+            <div class="chart-badge">Top 8</div>
+          </div>
+          <canvas id="cSuppliers" style="max-height:260px!important"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-head">
+            <div><div class="chart-title">Plant Distribution</div><div class="chart-sub">Shipments by destination unit</div></div>
+          </div>
+          <canvas id="cUnits"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-head">
+            <div><div class="chart-title">Customs Pipeline</div><div class="chart-sub">Active shipment clearance stages</div></div>
+          </div>
+          <canvas id="cStatus"></canvas>
+        </div>
+      </div>
+
+      <!-- Charts Row 3: Freight trend + Ports -->
+      <div class="charts-row cr2">
+        <div class="chart-card">
+          <div class="chart-head">
+            <div><div class="chart-title">Monthly Freight Expenditure (INR)</div><div class="chart-sub">Air freight cost trend FY 26-27</div></div>
+          </div>
+          <canvas id="cFreight"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-head">
+            <div><div class="chart-title">Ports of Loading</div><div class="chart-sub">Top origin airports &amp; seaports</div></div>
+            <div class="chart-badge">Top 8</div>
+          </div>
+          <canvas id="cPorts"></canvas>
+        </div>
+      </div>
+
+      <!-- Recent Active Shipments Table -->
+      <div class="table-card">
+        <div class="table-head">
+          <h3>🚚 Recent Active Shipments</h3>
+          <div class="table-actions">
+            <button class="btn-sm btn-outline" onclick="showPage('details')">View All Active →</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Job No.</th><th>Date</th><th>Supplier</th><th>ETA MAA</th>
+                <th>Forwarder</th><th>Customs Status</th><th>Remarks</th><th>Plant</th>
+              </tr>
+            </thead>
+            <tbody id="recentTbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div><!-- /dashboardPage -->
+
+  <!-- ── ACTIVE SHIPMENTS PAGE ── -->
+  <div id="detailsPage" class="hidden">
+    <div class="pg">
+      <div class="pg-head">
+        <div>
+          <div class="pg-title">Active Shipments — Detailed View</div>
+          <div class="pg-sub">All in-transit and customs clearance shipments</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn-sm btn-grn" onclick="exportCSV('active')">⬇ Export CSV</button>
+          <button class="btn-sm btn-outline" onclick="showPage('dashboard')">← Dashboard</button>
+        </div>
+      </div>
+
+      <div class="filter-bar">
+        <div class="fg-inline"><label>Supplier</label><select id="fSup" onchange="applyActiveFilter()"><option value="">All</option></select></div>
+        <div class="fg-inline"><label>Status</label><select id="fStat" onchange="applyActiveFilter()"><option value="">All</option></select></div>
+        <div class="fg-inline"><label>Forwarder</label><select id="fCon" onchange="applyActiveFilter()"><option value="">All</option></select></div>
+        <div class="fg-inline"><label>Plant</label><select id="fUnit" onchange="applyActiveFilter()"><option value="">All</option></select></div>
+        <div class="fg-inline"><label>Search</label><input id="fSrch" placeholder="Job No / Part…" oninput="applyActiveFilter()"></div>
+        <button class="btn-sm btn-outline" onclick="clearActiveFilter()">✕ Clear</button>
+      </div>
+
+      <div class="table-card">
+        <div class="table-head">
+          <h3 id="dtCount">Active Shipments</h3>
+          <div class="table-actions"><span style="font-size:11.5px;color:var(--muted)" id="dtTotal"></span></div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th onclick="sortActive('Job No ')">Job No. ↕</th>
+                <th onclick="sortActive('Date')">Date ↕</th>
+                <th>Supplier</th>
+                <th>Part No.</th>
+                <th class="tr">Qty</th>
+                <th>MAWB</th>
+                <th onclick="sortActive('Eta Maa')">ETA MAA ↕</th>
+                <th>B/E No.</th>
+                <th>Customs Status</th>
+                <th>Duty Advised</th>
+                <th>Duty Received</th>
+                <th>Forwarder</th>
+                <th>Plant</th>
+                <th>Remarks</th>
+              </tr>
+            </thead>
+            <tbody id="dtBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <div class="pag-info" id="dtPagInfo"></div>
+          <div class="pag-btns" id="dtPagBtns"></div>
+        </div>
+      </div>
+    </div>
+  </div><!-- /detailsPage -->
+
+  <!-- ── DELIVERED PAGE ── -->
+  <div id="deliveredPage" class="hidden">
+    <div class="pg">
+      <div class="pg-head">
+        <div>
+          <div class="pg-title">Delivered Shipments — Complete Record</div>
+          <div class="pg-sub">All completed deliveries in FY 2026-27</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn-sm btn-grn" onclick="exportCSV('delivered')">⬇ Export CSV</button>
+          <button class="btn-sm btn-outline" onclick="showPage('dashboard')">← Dashboard</button>
+        </div>
+      </div>
+
+      <div class="filter-bar">
+        <div class="fg-inline"><label>Supplier</label><select id="dfSup" onchange="applyDelFilter()"><option value="">All</option></select></div>
+        <div class="fg-inline"><label>Plant</label><select id="dfUnit" onchange="applyDelFilter()"><option value="">All</option></select></div>
+        <div class="fg-inline"><label>Forwarder</label><select id="dfCon" onchange="applyDelFilter()"><option value="">All</option></select></div>
+        <div class="fg-inline"><label>Month</label><select id="dfMonth" onchange="applyDelFilter()"><option value="">All</option></select></div>
+        <div class="fg-inline"><label>Search</label><input id="dfSrch" placeholder="Job No / Supplier…" oninput="applyDelFilter()"></div>
+        <button class="btn-sm btn-outline" onclick="clearDelFilter()">✕ Clear</button>
+      </div>
+
+      <div class="table-card">
+        <div class="table-head">
+          <h3 id="dlCount">Delivered Shipments</h3>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Job No.</th><th>Delivered Date</th><th>Supplier</th>
+                <th>Material</th><th class="tr">Qty</th><th>Forwarder</th>
+                <th>Port of Loading</th><th>B/E No.</th><th>Plant</th>
+                <th class="tr">FRT (INR)</th><th class="tr">EX (INR)</th>
+              </tr>
+            </thead>
+            <tbody id="dlBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <div class="pag-info" id="dlPagInfo"></div>
+          <div class="pag-btns" id="dlPagBtns"></div>
+        </div>
+      </div>
+    </div>
+  </div><!-- /deliveredPage -->
+
+</div><!-- /appShell -->
+
+<script>
+// ════════════════════════════════════════════════════════
+//  APP STATE
+// ════════════════════════════════════════════════════════
+const S = {
+  activeData: [],
+  deliveredData: [],
+  filtActive: [],
+  filtDelivered: [],
+  activePage: 1,
+  delPage: 1,
+  PAGE_SIZE: 20,
+  sortCol: null,
+  sortAsc: true,
+  charts: {}
+};
+
+// ─── DEFAULT STATS (from Excel analysis) ─────────────
+const DEF = {
+  active:29, delivered:608, longPending:20, duty:22, cleared:7,
+  freight:19368962, pkgs:2937, weight:199997, suppliers:28,
+  monthly: { labels:['Apr 2026','May 2026','Jun 2026','Jul 2026'], data:[145,213,138,112] },
+  mFreight:{ labels:['Apr 2026','May 2026','Jun 2026','Jul 2026'], data:[4524969,6913263,5545255,2385474] },
+  consol:  { labels:['DHL GLOBAL','DACHSER','DHL EXPRESS','UPS','HELLMAN'], data:[324,203,78,2,1] },
+  units:   { labels:['Ambattur','Safexpress','MFG','Jharkhand','Uttar Pradesh','Others'], data:[385,144,35,30,9,5] },
+  suppliers:{ labels:['ZF CV Systems GMBH','ZF Commercial (China)','ASIMCO Sealing','MANN+HUMMEL','NEXANS Autoelectric','STREAMAX Tech','SIIX EMS','ETO Magnetic'], data:[348,21,21,20,18,14,13,9] },
+  customs: { labels:['OTP-REG','OOC','OTP-FLT','DUTY-PCV','REG-FLT'], data:[10,7,7,4,1] },
+  ports:   { labels:['HANNOVER','SHANGHAI','SHENZHEN','QINGDAO','WARSAW','MANNHEIM','FRANKFURT','GUANGZHOU'], data:[375,33,29,23,13,12,10,9] }
+};
+
+// ─── DEFAULT SAMPLE ROWS ──────────────────────────────
+const DEF_ACTIVE = [
+  { 'Job No ':'AIC/02673/26-27','Date':'2026-07-08','Supplier':'ZF CV SYSTEMS GLOBAL GMBH','Eta Maa':'2026-07-01','Customs Cleared':'OOC','Consol':'DACHSER','Unit':'AMB','Remarks':'AWAITING FOR DELIVERY CONFIRMATION','HAWB No.':'HAJ15865538','Part No':'13701121','Qty':16,'MAWB No.':'15753562073','B/E No':'2171045','B/E Date':'2026-07-08','Duty Advised ':'2026-07-09','Duty Received':'2026-07-10','Filter':'CLR' },
+  { 'Job No ':'AIC/03168/26-27','Date':'2026-07-22','Supplier':'TE CONNECTIVITY GERMANY GMBH','Eta Maa':'2026-07-13','Customs Cleared':'OOC','Consol':'DHL EXPRESS','Unit':'AMB','Remarks':'AWAITING FOR DELIVERY CONFIRMATION','HAWB No.':'2541091744','Part No':'4419057122','Qty':19200,'MAWB No.':'61546893490','B/E No':'2491453','B/E Date':'2026-07-22','Duty Advised ':'2026-07-23','Duty Received':'2026-07-23','Filter':'CLR' },
+  { 'Job No ':'AIC/03198/26-27','Date':'2026-07-23','Supplier':'AMES GROUP SINTERINGS S A','Eta Maa':'2026-07-16','Customs Cleared':'OOC','Consol':'DHL GLOBAL','Unit':'AMB','Remarks':'AWAITING FOR DELIVERY CONFIRMATION','HAWB No.':'-','Part No':'-','Qty':null,'MAWB No.':'-','B/E No':'-','B/E Date':'','Duty Advised ':'','Duty Received':'','Filter':'CLR' },
+  { 'Job No ':'AIC/03200/26-27','Date':'2026-07-23','Supplier':'CEETEK LIMITED','Eta Maa':'2026-07-16','Customs Cleared':'OOC','Consol':'DHL GLOBAL','Unit':'AMB','Remarks':'AWAITING FOR DELIVERY CONFIRMATION','HAWB No.':'-','Part No':'-','Qty':null,'MAWB No.':'-','B/E No':'-','B/E Date':'','Duty Advised ':'','Duty Received':'','Filter':'CLR' },
+  { 'Job No ':'AIC/03369/26-27','Date':'2026-07-23','Supplier':'ZF CV SYSTEMS GLOBAL GMBH','Eta Maa':'2026-07-18','Customs Cleared':'OOC','Consol':'DACHSER','Unit':'AMB','Remarks':'AWAITING FOR DELIVERY CONFIRMATION','HAWB No.':'-','Part No':'-','Qty':null,'MAWB No.':'-','B/E No':'-','B/E Date':'','Duty Advised ':'','Duty Received':'','Filter':'CLR' },
+  { 'Job No ':'AIC/02574/26-27','Date':'2026-06-14','Supplier':'SHANGHAI SENNAI PRECISION MACHINERY MFG CO LTD','Eta Maa':'2026-06-24','Customs Cleared':'DUTY - PCV','Consol':'DHL GLOBAL','Unit':'MFG','Remarks':'AWAITING FOR DUTY AND ASN','HAWB No.':'-','Part No':'-','Qty':null,'MAWB No.':'-','B/E No':'-','B/E Date':'','Duty Advised ':'','Duty Received':'','Filter':'DUTY' },
+  { 'Job No ':'AIC/03263/26-27','Date':'2026-07-15','Supplier':'DATWYLER SEALING TECHNOLOGIES (ANHUI) CO LTD','Eta Maa':'2026-07-15','Customs Cleared':'DUTY - PCV','Consol':'DHL GLOBAL','Unit':'AMB','Remarks':'AWAITING FOR DUTY AND ASN','HAWB No.':'-','Part No':'-','Qty':null,'MAWB No.':'-','B/E No':'-','B/E Date':'','Duty Advised ':'','Duty Received':'','Filter':'DUTY' },
+  { 'Job No ':'AIC/03361/26-27','Date':'2026-07-22','Supplier':'ZF CVS KOREA','Eta Maa':'2026-07-18','Customs Cleared':'DUTY - PCV','Consol':'DHL GLOBAL','Unit':'AMB','Remarks':'AWAITING FOR DUTY AND ASN','HAWB No.':'-','Part No':'-','Qty':null,'MAWB No.':'-','B/E No':'-','B/E Date':'','Duty Advised ':'','Duty Received':'','Filter':'DUTY' },
+  { 'Job No ':'AIC/03320/26-27','Date':'2026-07-18','Supplier':'WEH GMBH','Eta Maa':'2026-07-20','Customs Cleared':'OTP - REG','Consol':'DHL GLOBAL','Unit':'AMB','Remarks':'AWAITING FOR DUTY AND ASN','HAWB No.':'-','Part No':'-','Qty':null,'MAWB No.':'-','B/E No':'-','B/E Date':'','Duty Advised ':'','Duty Received':'','Filter':'DUTY' },
+  { 'Job No ':'AIC/03350/26-27','Date':'2026-07-20','Supplier':'WEH GMBH','Eta Maa':'2026-07-22','Customs Cleared':'OTP - REG','Consol':'DHL GLOBAL','Unit':'AMB','Remarks':'AWAITING FOR DUTY AND ASN','HAWB No.':'-','Part No':'-','Qty':null,'MAWB No.':'-','B/E No':'-','B/E Date':'','Duty Advised ':'','Duty Received':'','Filter':'DUTY' },
+  { 'Job No ':'AIC/03290/26-27','Date':'2026-07-16','Supplier':'SIIX EMS (DONG GUAN) CO LTD','Eta Maa':'2026-07-21','Customs Cleared':'OTP - FLT','Consol':'DHL GLOBAL','Unit':'AMB','Remarks':'AWAITING FOR DUTY AND ASN','HAWB No.':'-','Part No':'-','Qty':null,'MAWB No.':'-','B/E No':'-','B/E Date':'','Duty Advised ':'','Duty Received':'','Filter':'DUTY' },
+  { 'Job No ':'AIC/03310/26-27','Date':'2026-07-17','Supplier':'ELTROPULS ANLAGENDU','Eta Maa':'2026-07-22','Customs Cleared':'OTP - FLT','Consol':'DHL GLOBAL','Unit':'AMB','Remarks':'AWAITING FOR DUTY AND ASN','HAWB No.':'-','Part No':'-','Qty':null,'MAWB No.':'-','B/E No':'-','B/E Date':'','Duty Advised ':'','Duty Received':'','Filter':'DUTY' }
+];
+
+const DEF_DELIVERED = [
+  { 'Job No ':'AIC/00021/26-27','Wabco Delevered Date':'2026-04-02','Supplier':'ZF CV SYSTEMS GLOBAL GMBH','Material Description':'EBS-TRAILER MODULATOR 24V','Qty':192,'Consol':'DACHSER','Port Of Loading':'HANNOVER','B/E No':'8461280','Unit':'AMB','FRT':363434.6,'EX':49848.83 },
+  { 'Job No ':'AIC/00049/26-27','Wabco Delevered Date':'2026-04-02','Supplier':'ZF CV SYSTEMS GLOBAL GMBH','Material Description':'EBS-TRAILER MODULATOR 24V','Qty':168,'Consol':'DACHSER','Port Of Loading':'HANNOVER','B/E No':'8461279','Unit':'AMB','FRT':315134.14,'EX':46927.73 },
+  { 'Job No ':'AIC/00027/26-27','Wabco Delevered Date':'2026-04-05','Supplier':'ZF CV SYSTEMS GLOBAL GMBH','Material Description':'EBS-TRAILER MODULATOR 24V','Qty':24,'Consol':'DACHSER','Port Of Loading':'HANNOVER','B/E No':'8461662','Unit':'AMB','FRT':45500.74,'EX':10523.93 },
+  { 'Job No ':'AIC/00113/26-27','Wabco Delevered Date':'2026-04-08','Supplier':'NEXANS AUTOELECTRIC GMBH','Material Description':'WIRE HARNESS ASSEMBLY','Qty':500,'Consol':'DHL GLOBAL','Port Of Loading':'HANNOVER','B/E No':'8462105','Unit':'SAFEXPRESS','FRT':52963.42,'EX':8210.45 },
+  { 'Job No ':'AIC/00205/26-27','Wabco Delevered Date':'2026-04-12','Supplier':'MANN+HUMMEL GMBH','Material Description':'AIR FILTER ELEMENT','Qty':200,'Consol':'DHL GLOBAL','Port Of Loading':'MANNHEIM','B/E No':'8463210','Unit':'AMB','FRT':72213.47,'EX':9870.22 },
+  { 'Job No ':'AIC/00340/26-27','Wabco Delevered Date':'2026-04-18','Supplier':'ASIMCO SEALING TECHNOLOGIES CO LTD','Material Description':'SEALING KIT','Qty':1500,'Consol':'DHL EXPRESS','Port Of Loading':'SHANGHAI','B/E No':'8465320','Unit':'JHARKHAND','FRT':38450.20,'EX':5640.10 },
+  { 'Job No ':'AIC/00480/26-27','Wabco Delevered Date':'2026-05-03','Supplier':'STREAMAX TECHNOLOGY CO LTD','Material Description':'DASHCAM MODULE','Qty':100,'Consol':'DHL GLOBAL','Port Of Loading':'SHENZHEN','B/E No':'8468102','Unit':'SAFEXPRESS','FRT':25130.00,'EX':3820.50 },
+  { 'Job No ':'AIC/00510/26-27','Wabco Delevered Date':'2026-05-07','Supplier':'ZF CV SYSTEMS GLOBAL GMBH','Material Description':'PRESSURE CONTROL VALVE','Qty':300,'Consol':'DACHSER','Port Of Loading':'HANNOVER','B/E No':'8469205','Unit':'AMB','FRT':142800.00,'EX':18950.00 },
+  { 'Job No ':'AIC/00628/26-27','Wabco Delevered Date':'2026-05-15','Supplier':'ETO MAGNETIC SP Z O O','Material Description':'SOLENOID VALVE ASSEMBLY','Qty':250,'Consol':'DHL GLOBAL','Port Of Loading':'WARSAW','B/E No':'8471340','Unit':'MFG','FRT':89060.00,'EX':12400.00 },
+  { 'Job No ':'AIC/00720/26-27','Wabco Delevered Date':'2026-06-02','Supplier':'SIIX EMS (DONGGUAN) CO LTS','Material Description':'PCB ASSEMBLY','Qty':800,'Consol':'DHL EXPRESS','Port Of Loading':'GUANGZHOU','B/E No':'8473210','Unit':'AMB','FRT':42560.00,'EX':6180.00 }
+];
+
+// ════════════════════════════════════════════════════════
+//  AUTH
+// ════════════════════════════════════════════════════════
+function doLogin() {
+  const u = document.getElementById('loginUser').value.trim();
+  const p = document.getElementById('loginPass').value.trim();
+  const err = document.getElementById('loginErr');
+
+  if ((u==='admin' && p==='wabco2026') || (u==='logistics' && p==='wabco2026')) {
+    document.getElementById('loginPage').style.display = 'none';
+    document.getElementById('appShell').classList.remove('hidden');
+    initApp();
+  } else {
+    err.style.display = 'block';
+    document.getElementById('loginPass').style.borderColor = '#ef4444';
+  }
+}
+
+function doLogout() {
+  document.getElementById('appShell').classList.add('hidden');
+  document.getElementById('loginPage').style.display = 'flex';
+  document.getElementById('loginPass').value = '';
+  document.getElementById('loginErr').style.display = 'none';
+  document.getElementById('loginPass').style.borderColor = '';
+}
+
+// ════════════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════════════
+function initApp() {
+  const now = new Date();
+  document.getElementById('navDate').textContent = now.toLocaleDateString('en-IN',{weekday:'short',day:'2-digit',month:'short',year:'numeric'});
+  document.getElementById('reportDate').textContent = now.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+
+  S.activeData = [...DEF_ACTIVE];
+  S.deliveredData = [...DEF_DELIVERED];
+  S.filtActive = [...S.activeData];
+  S.filtDelivered = [...S.deliveredData];
+
+  updateKPIs(DEF);
+  renderCharts(DEF);
+  renderRecentTable();
+  populateActiveFilters();
+  renderActiveTable();
+  populateDelFilters();
+  renderDelTable();
+}
+
+// ════════════════════════════════════════════════════════
+//  PAGE NAV
+// ════════════════════════════════════════════════════════
+function showPage(pg) {
+  ['dashboardPage','detailsPage','deliveredPage'].forEach(id => document.getElementById(id).classList.add('hidden'));
+  ['navDash','navDetails','navDelivered'].forEach(id => document.getElementById(id).classList.remove('active'));
+
+  if (pg==='dashboard') {
+    document.getElementById('dashboardPage').classList.remove('hidden');
+    document.getElementById('navDash').classList.add('active');
+  } else if (pg==='details') {
+    document.getElementById('detailsPage').classList.remove('hidden');
+    document.getElementById('navDetails').classList.add('active');
+  } else if (pg==='delivered') {
+    document.getElementById('deliveredPage').classList.remove('hidden');
+    document.getElementById('navDelivered').classList.add('active');
+  }
+  window.scrollTo(0,0);
+}
+
+// ════════════════════════════════════════════════════════
+//  FILE UPLOAD
+// ════════════════════════════════════════════════════════
+function handleUpload(evt) {
+  const file = evt.target.files[0];
+  if (!file) return;
+
+  if (typeof XLSX === 'undefined') {
+    alert('SheetJS library not loaded. Please ensure you have an internet connection.');
+    return;
+  }
+
+  const overlay = document.getElementById('loadingOverlay');
+  overlay.style.display = 'flex';
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, { type:'array', cellDates:true, cellText:false });
+      processWB(wb, file.name);
+    } catch(err) {
+      overlay.style.display = 'none';
+      alert('Error reading file: ' + err.message + '\n\nSupported formats: .xlsb, .xlsx, .xls');
+    }
+  };
+  reader.onerror = () => { overlay.style.display = 'none'; alert('File read error.'); };
+  reader.readAsArrayBuffer(file);
+
+  // Reset input so same file can be re-uploaded
+  evt.target.value = '';
+}
+
+function processWB(wb, fileName) {
+  const sheets = wb.SheetNames;
+
+  // Auto-detect sheet names
+  const findSheet = (...keywords) => sheets.find(s => keywords.some(k => s.toLowerCase().includes(k.toLowerCase())));
+  const activeSheet    = findSheet('Ambattur','Plant','AIR') || sheets[0];
+  const deliveredSheet = findSheet('DELIVERED','Delivered') || sheets[1];
+  const pendingSheet   = findSheet('Pending','PENDING','Long');
+
+  let activeRaw = [], deliveredRaw = [], pendingCount = 0;
+
+  if (activeSheet) {
+    const ws = wb.Sheets[activeSheet];
+    // Skip header row (row 0) to get actual data headers from row 1
+    const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:Z1');
+    range.s.r = 1; // start from row index 1 (Excel row 2) which has column headers
+    const ref = XLSX.utils.encode_range(range);
+    const raw = XLSX.utils.sheet_to_json(ws, { defval:null, raw:false, range:1 });
+    activeRaw = raw.filter(r => r['Job No '] || r['Supplier'] || r['Job No'] || r['Job']);
+  }
+
+  if (deliveredSheet) {
+    const ws = wb.Sheets[deliveredSheet];
+    const raw = XLSX.utils.sheet_to_json(ws, { defval:null, raw:false, range:1 });
+    deliveredRaw = raw.filter(r => r['Job No '] || r['Supplier'] || r['Job No']);
+  }
+
+  if (pendingSheet) {
+    const ws = wb.Sheets[pendingSheet];
+    const arr = XLSX.utils.sheet_to_json(ws, { defval:null });
+    pendingCount = arr.length;
+  }
+
+  // Use parsed data or fall back to defaults
+  S.activeData    = activeRaw.length    > 0 ? activeRaw    : DEF_ACTIVE;
+  S.deliveredData = deliveredRaw.length > 0 ? deliveredRaw : DEF_DELIVERED;
+  S.filtActive    = [...S.activeData];
+  S.filtDelivered = [...S.deliveredData];
+  S.activePage = 1;
+  S.delPage    = 1;
+
+  const stats = computeStats(S.activeData, S.deliveredData, pendingCount);
+
+  updateKPIs(stats);
+  destroyCharts();
+  renderCharts(stats);
+  renderRecentTable();
+  populateActiveFilters();
+  renderActiveTable();
+  populateDelFilters();
+  renderDelTable();
+
+  document.getElementById('loadingOverlay').style.display = 'none';
+
+  const banner = document.getElementById('uploadBanner');
+  document.getElementById('uploadBannerTxt').textContent =
+    `"${fileName}" loaded — ${S.activeData.length} active shipments, ${S.deliveredData.length} delivered records.`;
+  banner.style.display = 'flex';
+  setTimeout(() => { banner.style.display = 'none'; }, 9000);
+}
+
+// ════════════════════════════════════════════════════════
+//  COMPUTE STATS FROM DATA
+// ════════════════════════════════════════════════════════
+function computeStats(active, delivered, pendingCnt) {
+  const s = {};
+  s.active      = active.length;
+  s.delivered   = delivered.length;
+  s.longPending = pendingCnt || 0;
+
+  const getField = (r, ...keys) => { for(const k of keys){ if(r[k]!=null) return r[k]; } return null; };
+
+  s.duty    = active.filter(r => String(getField(r,'Filter','')||'').toUpperCase()==='DUTY').length;
+  s.cleared = active.filter(r => String(getField(r,'Filter','')||'').toUpperCase()==='CLR').length;
+
+  const toNum = v => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
+
+  s.freight   = delivered.reduce((a,r) => a + toNum(getField(r,'FRT')), 0);
+  s.pkgs      = delivered.reduce((a,r) => a + toNum(getField(r,'No Of Pkgs')), 0);
+  s.weight    = delivered.reduce((a,r) => a + toNum(getField(r,'Weight')), 0);
+  s.suppliers = new Set(delivered.map(r => getField(r,'Supplier')).filter(Boolean)).size;
+
+  // Monthly breakdown
+  const mMap = {}, mFrt = {};
+  delivered.forEach(r => {
+    const dv = getField(r,'Wabco Delevered Date','Wabco Delivered Date','Date');
+    if (!dv) return;
+    const dt = new Date(dv);
+    if (isNaN(dt)) return;
+    const m = dt.toLocaleString('en-US',{month:'short',year:'numeric'});
+    mMap[m] = (mMap[m]||0)+1;
+    mFrt[m] = (mFrt[m]||0) + toNum(getField(r,'FRT'));
+  });
+  const ms = Object.keys(mMap).sort((a,b)=>new Date(a)-new Date(b));
+  s.monthly  = { labels:ms, data:ms.map(m=>mMap[m]) };
+  s.mFreight = { labels:ms, data:ms.map(m=>Math.round(mFrt[m]||0)) };
+
+  // Aggregates helper
+  const agg = (arr, fn, top=8) => {
+    const m={};
+    arr.forEach(r=>{ const k=fn(r)||'Other'; m[k]=(m[k]||0)+1; });
+    const s=Object.entries(m).sort((a,b)=>b[1]-a[1]).slice(0,top);
+    return { labels:s.map(x=>x[0]), data:s.map(x=>x[1]) };
+  };
+
+  s.consol   = agg(delivered, r=>getField(r,'Consol'), 6);
+  s.units    = agg(delivered, r=>getField(r,'Unit'), 7);
+  s.suppliers_chart = agg(delivered, r=>String(getField(r,'Supplier')||'').substring(0,30), 8);
+  s.customs  = agg(active,    r=>getField(r,'Customs Cleared'), 8);
+  s.ports    = agg(delivered, r=>getField(r,'Port Of Loading'), 8);
+
+  return s;
+}
+
+// ════════════════════════════════════════════════════════
+//  KPI UPDATE
+// ════════════════════════════════════════════════════════
+function fmtCur(n) {
+  if(n>=1e7) return '₹'+(n/1e7).toFixed(2)+' Cr';
+  if(n>=1e5) return '₹'+(n/1e5).toFixed(1)+'L';
+  return '₹'+Math.round(n).toLocaleString('en-IN');
+}
+function fmtN(n) {
+  if(n>=1e5) return (n/1e5).toFixed(1)+'L';
+  return Math.round(n).toLocaleString('en-IN');
+}
+
+function updateKPIs(s) {
+  const set = (id, v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
+  set('kActive',    (s.active||0).toLocaleString());
+  set('kDelivered', (s.delivered||0).toLocaleString());
+  set('kDuty',      (s.duty||s.dutyPending||0).toLocaleString());
+  set('kCleared',   (s.cleared||0).toLocaleString());
+  set('kPending',   (s.longPending||0).toLocaleString());
+  set('kFreight',   fmtCur(s.freight||s.totalFreight||0));
+  set('kPkgs',      (s.pkgs||s.totalPackages||0).toLocaleString('en-IN'));
+  set('kWeight',    fmtN(s.weight||s.totalWeight||0)+' kg');
+  const del = s.delivered||s.totalDelivered||1;
+  const frt = s.freight||s.totalFreight||0;
+  set('kAvgFrt',    '₹'+Math.round(frt/del).toLocaleString('en-IN'));
+  set('kSuppliers', (s.suppliers||s.totalSuppliers||0).toLocaleString());
+}
+
+// ════════════════════════════════════════════════════════
+//  CHARTS
+// ════════════════════════════════════════════════════════
+const PALETTE = {
+  multi: ['#0d1f3c','#f07c2c','#3b82f6','#10b981','#8b5cf6','#f59e0b','#14b8a6','#ec4899'],
+  donut: ['#0d1f3c','#f07c2c','#3b82f6','#10b981','#8b5cf6','#f59e0b'],
+  bar:   ['#3b82f6','#f07c2c','#10b981','#8b5cf6','#f59e0b','#ef4444','#14b8a6','#ec4899']
+};
+
+const TT = {
+  backgroundColor:'#0d1f3c', titleColor:'#fff',
+  bodyColor:'rgba(255,255,255,.8)', padding:10, cornerRadius:8,
+  titleFont:{ size:12.5, weight:'600', family:"'Segoe UI',sans-serif" },
+  bodyFont:{ size:12, family:"'Segoe UI',sans-serif" }
+};
+const LEGEND = { labels:{ font:{family:"'Segoe UI',sans-serif",size:11.5}, boxWidth:11, padding:10 } };
+
+function destroyCharts() {
+  Object.values(S.charts).forEach(c => c && c.destroy());
+  S.charts = {};
+}
+
+function renderCharts(st) {
+  const monthly  = st.monthly  || DEF.monthly;
+  const mFreight = st.mFreight || st.monthlyFreight || DEF.mFreight;
+  const consol   = st.consol   || DEF.consol;
+  const units    = st.units    || DEF.units;
+  const sups     = st.suppliers_chart || st.topSuppliers || st.suppliers || DEF.suppliers;
+  const customs  = st.customs  || st.customsStatus || DEF.customs;
+  const ports    = st.ports    || DEF.ports;
+
+  // 1) Monthly combo (bar + line)
+  S.charts.monthly = new Chart(document.getElementById('cMonthly').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: monthly.labels,
+      datasets: [
+        { label:'Shipments', data:monthly.data, backgroundColor:'rgba(59,130,246,.8)', borderRadius:6, yAxisID:'y' },
+        { label:'Freight (INR)', data:mFreight.data, type:'line', borderColor:'#f07c2c', backgroundColor:'rgba(240,124,44,.08)',
+          borderWidth:2.5, pointBackgroundColor:'#f07c2c', pointRadius:4, tension:.4, yAxisID:'y1', fill:true }
+      ]
+    },
+    options: {
+      responsive:true, animation:{duration:700},
+      interaction:{ mode:'index', intersect:false },
+      plugins:{ legend:LEGEND, tooltip:TT },
+      scales:{
+        y:{ position:'left', grid:{color:'#f1f5f9'}, ticks:{color:'#64748b',font:{size:11}}, title:{display:true,text:'Shipments',color:'#64748b',font:{size:11}} },
+        y1:{ position:'right', grid:{display:false}, ticks:{color:'#f07c2c',font:{size:11},callback:v=>'₹'+(v/1e5).toFixed(0)+'L'}, title:{display:true,text:'Freight',color:'#f07c2c',font:{size:11}} }
+      }
+    }
+  });
+
+  // 2) Consol donut
+  S.charts.consol = new Chart(document.getElementById('cConsol').getContext('2d'), {
+    type:'doughnut',
+    data:{ labels:consol.labels, datasets:[{data:consol.data, backgroundColor:PALETTE.donut, borderWidth:2, borderColor:'#fff', hoverOffset:8}] },
+    options:{ responsive:true, cutout:'65%', animation:{duration:700}, plugins:{ tooltip:TT, legend:{...LEGEND,position:'bottom'} } }
+  });
+
+  // 3) Suppliers horizontal bar
+  S.charts.sups = new Chart(document.getElementById('cSuppliers').getContext('2d'), {
+    type:'bar',
+    data:{ labels:sups.labels, datasets:[{label:'Shipments', data:sups.data, backgroundColor:PALETTE.bar, borderRadius:5}] },
+    options:{
+      indexAxis:'y', responsive:true, animation:{duration:700},
+      plugins:{ legend:{display:false}, tooltip:TT },
+      scales:{ x:{grid:{color:'#f1f5f9'},ticks:{color:'#64748b',font:{size:11}}}, y:{grid:{display:false},ticks:{color:'#334155',font:{size:11}}} }
+    }
+  });
+
+  // 4) Units donut
+  S.charts.units = new Chart(document.getElementById('cUnits').getContext('2d'), {
+    type:'doughnut',
+    data:{ labels:units.labels, datasets:[{data:units.data, backgroundColor:PALETTE.multi, borderWidth:2, borderColor:'#fff', hoverOffset:6}] },
+    options:{ responsive:true, cutout:'60%', animation:{duration:700}, plugins:{ tooltip:TT, legend:{...LEGEND,position:'bottom',labels:{...LEGEND.labels,boxWidth:10,padding:8,font:{size:10.5}}} } }
+  });
+
+  // 5) Customs bar
+  S.charts.customs = new Chart(document.getElementById('cStatus').getContext('2d'), {
+    type:'bar',
+    data:{ labels:customs.labels, datasets:[{label:'Shipments', data:customs.data, backgroundColor:PALETTE.bar, borderRadius:6}] },
+    options:{
+      responsive:true, animation:{duration:700},
+      plugins:{ legend:{display:false}, tooltip:TT },
+      scales:{ x:{grid:{display:false},ticks:{color:'#64748b',font:{size:10}}}, y:{grid:{color:'#f1f5f9'},ticks:{color:'#64748b',font:{size:11}}} }
+    }
+  });
+
+  // 6) Freight trend line
+  S.charts.freight = new Chart(document.getElementById('cFreight').getContext('2d'), {
+    type:'line',
+    data:{
+      labels: mFreight.labels,
+      datasets:[{ label:'Freight (INR)', data:mFreight.data, borderColor:'#0d1f3c', backgroundColor:'rgba(13,31,60,.07)',
+        borderWidth:2.5, pointBackgroundColor:'#f07c2c', pointRadius:5, tension:.4, fill:true }]
+    },
+    options:{
+      responsive:true, animation:{duration:700},
+      plugins:{ legend:{display:false}, tooltip:{...TT, callbacks:{label:ctx=>'₹'+Math.round(ctx.raw).toLocaleString('en-IN')}} },
+      scales:{ x:{grid:{display:false},ticks:{color:'#64748b',font:{size:11}}}, y:{grid:{color:'#f1f5f9'},ticks:{color:'#64748b',font:{size:11},callback:v=>'₹'+(v/1e5).toFixed(0)+'L'}} }
+    }
+  });
+
+  // 7) Ports bar
+  S.charts.ports = new Chart(document.getElementById('cPorts').getContext('2d'), {
+    type:'bar',
+    data:{ labels:ports.labels, datasets:[{label:'Shipments', data:ports.data, backgroundColor:'rgba(13,31,60,.75)', borderRadius:5}] },
+    options:{
+      indexAxis:'y', responsive:true, animation:{duration:700},
+      plugins:{ legend:{display:false}, tooltip:TT },
+      scales:{ x:{grid:{color:'#f1f5f9'},ticks:{color:'#64748b',font:{size:11}}}, y:{grid:{display:false},ticks:{color:'#334155',font:{size:11}}} }
+    }
+  });
+}
+
+// ════════════════════════════════════════════════════════
+//  HELPERS
+// ════════════════════════════════════════════════════════
+function fmtDate(v) {
+  if (!v) return '—';
+  if (typeof v === 'number' && v > 40000) {
+    const d = new Date((v - 25569) * 86400000);
+    return d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+  }
+  const d = new Date(v);
+  if (!isNaN(d) && String(v).length > 5) return d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+  return String(v);
+}
+
+function fmtMoney(v) {
+  const n = parseFloat(v);
+  if (isNaN(n) || !v) return '—';
+  return '₹' + Math.round(n).toLocaleString('en-IN');
+}
+
+function statusBadge(v) {
+  const s = String(v||'').trim().toUpperCase();
+  if (!s || s==='—') return '<span class="badge b-gray">—</span>';
+  if (s.includes('OOC'))  return `<span class="badge b-grn">✓ ${v}</span>`;
+  if (s.includes('DUTY')) return `<span class="badge b-org">💰 ${v}</span>`;
+  if (s==='OTP - REG')    return `<span class="badge b-blue">🛃 ${v}</span>`;
+  if (s==='OTP - FLT')    return `<span class="badge b-pur">✈ ${v}</span>`;
+  if (s==='REG - FLT')    return `<span class="badge b-pur">✈ ${v}</span>`;
+  if (s.includes('CLR') || s.includes('CLEAR')) return `<span class="badge b-grn">✓ ${v}</span>`;
+  return `<span class="badge b-gray">${v}</span>`;
+}
+
+function isOverdue(eta) {
+  if (!eta) return false;
+  const d = new Date(eta);
+  return !isNaN(d) && d < new Date();
+}
+
+// ════════════════════════════════════════════════════════
+//  RECENT TABLE (Dashboard)
+// ════════════════════════════════════════════════════════
+function renderRecentTable() {
+  const rows = S.activeData.slice(0,12);
+  document.getElementById('recentTbody').innerHTML = rows.map(r => `
+    <tr>
+      <td><span class="mono" style="color:#1d4ed8">${r['Job No ']||'—'}</span></td>
+      <td>${fmtDate(r['Date'])}</td>
+      <td><span class="trunc" title="${r['Supplier']||''}">${r['Supplier']||'—'}</span></td>
+      <td style="font-weight:600;color:${isOverdue(r['Eta Maa'])?'#dc2626':'inherit'}">${fmtDate(r['Eta Maa'])}</td>
+      <td>${r['Consol']||'—'}</td>
+      <td>${statusBadge(r['Customs Cleared'])}</td>
+      <td><span class="trunc" style="max-width:160px" title="${r['Remarks']||''}">${r['Remarks']||'—'}</span></td>
+      <td><span class="badge b-blue">${r['Unit']||'—'}</span></td>
+    </tr>
+  `).join('');
+}
+
+// ════════════════════════════════════════════════════════
+//  ACTIVE SHIPMENTS TABLE
+// ════════════════════════════════════════════════════════
+function populateActiveFilters() {
+  const uniq = (arr, fn) => [...new Set(arr.map(fn).filter(Boolean))].sort();
+  const fill = (id, arr) => {
+    const el = document.getElementById(id);
+    const cur = el.value;
+    el.innerHTML = '<option value="">All</option>' + arr.map(v=>`<option${v===cur?' selected':''}>${v}</option>`).join('');
+  };
+  fill('fSup',  uniq(S.activeData, r=>r['Supplier']));
+  fill('fStat', uniq(S.activeData, r=>r['Customs Cleared']));
+  fill('fCon',  uniq(S.activeData, r=>r['Consol']));
+  fill('fUnit', uniq(S.activeData, r=>r['Unit']));
+}
+
+function applyActiveFilter() {
+  const sup  = document.getElementById('fSup').value;
+  const stat = document.getElementById('fStat').value;
+  const con  = document.getElementById('fCon').value;
+  const unit = document.getElementById('fUnit').value;
+  const srch = document.getElementById('fSrch').value.toLowerCase();
+
+  S.filtActive = S.activeData.filter(r => {
+    if (sup  && r['Supplier']!==sup) return false;
+    if (stat && r['Customs Cleared']!==stat) return false;
+    if (con  && r['Consol']!==con) return false;
+    if (unit && r['Unit']!==unit) return false;
+    if (srch && !JSON.stringify(r).toLowerCase().includes(srch)) return false;
+    return true;
+  });
+  S.activePage = 1;
+  renderActiveTable();
+}
+
+function clearActiveFilter() {
+  ['fSup','fStat','fCon','fUnit'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('fSrch').value = '';
+  S.filtActive = [...S.activeData];
+  S.activePage = 1;
+  renderActiveTable();
+}
+
+function sortActive(col) {
+  if (S.sortCol===col) S.sortAsc = !S.sortAsc;
+  else { S.sortCol=col; S.sortAsc=true; }
+  S.filtActive.sort((a,b) => {
+    const av = a[col]||'', bv = b[col]||'';
+    const cmp = String(av).localeCompare(String(bv),undefined,{numeric:true});
+    return S.sortAsc ? cmp : -cmp;
+  });
+  S.activePage = 1;
+  renderActiveTable();
+}
+
+function renderActiveTable() {
+  const data  = S.filtActive;
+  const total = data.length;
+  const pages = Math.ceil(total/S.PAGE_SIZE)||1;
+  const s     = (S.activePage-1)*S.PAGE_SIZE;
+  const e     = Math.min(s+S.PAGE_SIZE, total);
+
+  document.getElementById('dtCount').textContent    = `Active Shipments (${total})`;
+  document.getElementById('dtTotal').textContent    = `Showing ${total?s+1:0}–${e} of ${total}`;
+
+  document.getElementById('dtBody').innerHTML = data.slice(s,e).map(r => `
+    <tr>
+      <td><span class="mono" style="color:#1d4ed8">${r['Job No ']||'—'}</span></td>
+      <td>${fmtDate(r['Date'])}</td>
+      <td><span class="trunc">${r['Supplier']||'—'}</span></td>
+      <td class="mono">${r['Part No']||'—'}</td>
+      <td class="tr">${r['Qty']!=null ? Number(r['Qty']).toLocaleString() : '—'}</td>
+      <td class="mono">${String(r['MAWB No.']||'—').substring(0,16)}</td>
+      <td style="font-weight:600;color:${isOverdue(r['Eta Maa'])?'#dc2626':'inherit'}">${fmtDate(r['Eta Maa'])}</td>
+      <td class="mono">${r['B/E No']||'—'}</td>
+      <td>${statusBadge(r['Customs Cleared'])}</td>
+      <td>${fmtDate(r['Duty Advised '])}</td>
+      <td>${fmtDate(r['Duty Received'])}</td>
+      <td>${r['Consol']||'—'}</td>
+      <td><span class="badge b-blue">${r['Unit']||'—'}</span></td>
+      <td><span class="trunc" style="max-width:160px" title="${r['Remarks']||''}">${r['Remarks']||'—'}</span></td>
+    </tr>
+  `).join('') || '<tr><td colspan="14" style="text-align:center;padding:24px;color:var(--muted)">No records match the filters.</td></tr>';
+
+  renderPag('dtPagInfo','dtPagBtns', S.activePage, pages, total, p=>{S.activePage=p;renderActiveTable();});
+}
+
+// ════════════════════════════════════════════════════════
+//  DELIVERED TABLE
+// ════════════════════════════════════════════════════════
+function populateDelFilters() {
+  const uniq = (arr, fn) => [...new Set(arr.map(fn).filter(Boolean))].sort();
+  const fill = (id, arr) => {
+    document.getElementById(id).innerHTML = '<option value="">All</option>' + arr.map(v=>`<option>${v}</option>`).join('');
+  };
+
+  const months = [...new Set(S.deliveredData.map(r => {
+    const dv = r['Wabco Delevered Date']||r['Date'];
+    if (!dv) return null;
+    const d = new Date(dv);
+    if (isNaN(d)) return null;
+    return d.toLocaleString('en-US',{month:'short',year:'numeric'});
+  }).filter(Boolean))].sort((a,b)=>new Date(a)-new Date(b));
+
+  fill('dfSup',   uniq(S.deliveredData, r=>r['Supplier']));
+  fill('dfUnit',  uniq(S.deliveredData, r=>r['Unit']));
+  fill('dfCon',   uniq(S.deliveredData, r=>r['Consol']));
+  fill('dfMonth', months);
+}
+
+function applyDelFilter() {
+  const sup   = document.getElementById('dfSup').value;
+  const unit  = document.getElementById('dfUnit').value;
+  const con   = document.getElementById('dfCon').value;
+  const month = document.getElementById('dfMonth').value;
+  const srch  = document.getElementById('dfSrch').value.toLowerCase();
+
+  S.filtDelivered = S.deliveredData.filter(r => {
+    if (sup  && r['Supplier']!==sup) return false;
+    if (unit && r['Unit']!==unit) return false;
+    if (con  && r['Consol']!==con) return false;
+    if (month) {
+      const dv = r['Wabco Delevered Date']||r['Date'];
+      if (!dv) return false;
+      const d = new Date(dv);
+      if (isNaN(d)) return false;
+      if (d.toLocaleString('en-US',{month:'short',year:'numeric'})!==month) return false;
+    }
+    if (srch && !JSON.stringify(r).toLowerCase().includes(srch)) return false;
+    return true;
+  });
+  S.delPage = 1;
+  renderDelTable();
+}
+
+function clearDelFilter() {
+  ['dfSup','dfUnit','dfCon','dfMonth'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('dfSrch').value='';
+  S.filtDelivered = [...S.deliveredData];
+  S.delPage = 1;
+  renderDelTable();
+}
+
+function renderDelTable() {
+  const data  = S.filtDelivered;
+  const total = data.length;
+  const pages = Math.ceil(total/S.PAGE_SIZE)||1;
+  const s     = (S.delPage-1)*S.PAGE_SIZE;
+  const e     = Math.min(s+S.PAGE_SIZE, total);
+
+  document.getElementById('dlCount').textContent = `Delivered Shipments (${total})`;
+
+  document.getElementById('dlBody').innerHTML = data.slice(s,e).map(r => `
+    <tr>
+      <td><span class="mono" style="color:#1d4ed8">${r['Job No ']||'—'}</span></td>
+      <td style="font-weight:500">${fmtDate(r['Wabco Delevered Date'])}</td>
+      <td><span class="trunc">${r['Supplier']||'—'}</span></td>
+      <td><span class="trunc">${r['Material Description']||'—'}</span></td>
+      <td class="tr">${r['Qty']!=null ? Number(r['Qty']).toLocaleString() : '—'}</td>
+      <td>${r['Consol']||'—'}</td>
+      <td>${r['Port Of Loading']||'—'}</td>
+      <td class="mono">${r['B/E No']||'—'}</td>
+      <td><span class="badge b-blue">${r['Unit']||'—'}</span></td>
+      <td class="tr" style="font-weight:600;color:var(--primary)">${fmtMoney(r['FRT'])}</td>
+      <td class="tr">${fmtMoney(r['EX'])}</td>
+    </tr>
+  `).join('') || '<tr><td colspan="11" style="text-align:center;padding:24px;color:var(--muted)">No records match the filters.</td></tr>';
+
+  renderPag('dlPagInfo','dlPagBtns', S.delPage, pages, total, p=>{S.delPage=p;renderDelTable();});
+}
+
+// ════════════════════════════════════════════════════════
+//  PAGINATION
+// ════════════════════════════════════════════════════════
+function renderPag(infoId, btnsId, cur, total, totalRows, onPageFn) {
+  document.getElementById(infoId).textContent = `${totalRows.toLocaleString()} records — Page ${cur} of ${total}`;
+
+  let html = '';
+  if (cur>1) html += `<button class="page-btn" onclick="(${onPageFn})(${cur-1})">‹</button>`;
+
+  const lo = Math.max(1, cur-2), hi = Math.min(total, lo+4);
+  for (let p=lo; p<=hi; p++) {
+    html += `<button class="page-btn${p===cur?' active':''}" onclick="(${onPageFn})(${p})">${p}</button>`;
+  }
+
+  if (cur<total) html += `<button class="page-btn" onclick="(${onPageFn})(${cur+1})">›</button>`;
+
+  document.getElementById(btnsId).innerHTML = html;
+}
+
+// ════════════════════════════════════════════════════════
+//  EXPORT CSV
+// ════════════════════════════════════════════════════════
+function exportCSV(type) {
+  const data = type==='active' ? S.filtActive : S.filtDelivered;
+  if (!data.length) { alert('No data to export.'); return; }
+
+  const keys = Object.keys(data[0]);
+  const rows = [
+    keys.join(','),
+    ...data.map(r => keys.map(k => {
+      const v = r[k];
+      if (v==null) return '';
+      const str = String(v).replace(/"/g,'""');
+      return /[,"\n]/.test(str) ? `"${str}"` : str;
+    }).join(','))
+  ];
+
+  const blob = new Blob(['﻿'+rows.join('\n')], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `WABCO_${type}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+</script>
+</body>
+</html>
