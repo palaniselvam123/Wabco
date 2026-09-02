@@ -5,7 +5,10 @@ import LoadingOverlay from './components/LoadingOverlay';
 import Dashboard from './components/Dashboard';
 import ActiveShipments from './components/ActiveShipments';
 import DeliveredShipments from './components/DeliveredShipments';
-import AdminPanel from './components/AdminPanel';
+import Sidebar from './components/Sidebar';
+import UserMaster from './components/UserMaster';
+import SecurityMaster from './components/SecurityMaster';
+import AdminOverview from './components/AdminOverview';
 import ConfirmUpload from './components/ConfirmUpload';
 import ChangePassword from './components/ChangePassword';
 import { DEF_ACTIVE, DEF_DELIVERED } from './data/defaults';
@@ -22,7 +25,6 @@ export default function App() {
   const [settings, setSettings] = useState(null);
   const [sessionNotice, setSessionNotice] = useState('');
   const [changingPassword, setChangingPassword] = useState(false);
-  const [adminOpen, setAdminOpen] = useState(false);
   const [pendingUpload, setPendingUpload] = useState(null);
 
   const [page, setPage] = useState('dashboard');
@@ -222,19 +224,9 @@ export default function App() {
     <>
       <LoadingOverlay visible={loading} />
       <Navbar
-        page={page}
-        onNavigate={handleNavigate}
         onLogout={handleLogout}
         user={user}
         onChangePassword={() => setChangingPassword(true)}
-        onOpenAdmin={() => setAdminOpen(true)}
-      />
-
-      <AdminPanel
-        open={adminOpen}
-        onClose={() => setAdminOpen(false)}
-        currentUser={user}
-        policy={settings?.password}
       />
 
       {pendingUpload && (
@@ -246,6 +238,15 @@ export default function App() {
           onCancel={() => setPendingUpload(null)}
         />
       )}
+      <div className="app-shell">
+        <Sidebar
+          page={page}
+          onNavigate={handleNavigate}
+          user={user}
+          activeCount={activeData.length}
+          deliveredCount={deliveredData.length}
+        />
+        <main className="app-main">
       {page === 'dashboard' && (
         <Dashboard
           stats={stats}
@@ -273,6 +274,41 @@ export default function App() {
           canExport={canExport}
         />
       )}
+      {page === 'admin' && can(user, 'manage_users') && (
+        <div className="pg">
+          <div className="pg-head">
+            <div>
+              <div className="pg-title">Administration</div>
+              <div className="pg-sub">
+                Accounts, roles and recent security activity
+              </div>
+            </div>
+          </div>
+          <AdminOverview currentUser={user} onOpenTab={handleNavigate} />
+        </div>
+      )}
+      {page === 'users' && can(user, 'manage_users') && (
+        <UserMaster
+          currentUser={user}
+          policy={settings?.password}
+          onNavigate={handleNavigate}
+        />
+      )}
+      {page === 'security' && can(user, 'manage_security') && (
+        <SecurityMaster
+          onNavigate={handleNavigate}
+          onSettingsSaved={(next) =>
+            setSettings((prev) => ({
+              ...prev,
+              password: next.password,
+              upload: next.upload,
+              session: next.session,
+            }))
+          }
+        />
+      )}
+        </main>
+      </div>
     </>
   );
 }

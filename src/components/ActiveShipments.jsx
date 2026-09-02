@@ -162,9 +162,6 @@ export default function ActiveShipments({ activeData, onNavigate, canExport = fa
               ⬇ Export CSV
             </button>
           )}
-          <button className="btn-sm btn-outline" onClick={() => onNavigate('dashboard')}>
-            ← Dashboard
-          </button>
         </div>
       </div>
 

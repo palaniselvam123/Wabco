@@ -7,7 +7,11 @@ const ROLE_LABEL = {
   viewer: 'Viewer',
 };
 
-export default function Navbar({ page, onNavigate, onLogout, user, onChangePassword, onOpenAdmin }) {
+/**
+ * Top bar: identity and account actions only. All page navigation lives in
+ * the left sidebar, so nothing is duplicated between the two.
+ */
+export default function Navbar({ onLogout, user, onChangePassword }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -32,9 +36,6 @@ export default function Navbar({ page, onNavigate, onLogout, user, onChangePassw
     };
   }, [menuOpen]);
 
-  const perms = user?.permissions || [];
-  const canManageUsers = perms.includes('manage_users');
-  const canManageSecurity = perms.includes('manage_security');
   const initial = (user?.fullName || user?.username || '?').charAt(0).toUpperCase();
 
   return (
@@ -45,34 +46,9 @@ export default function Navbar({ page, onNavigate, onLogout, user, onChangePassw
         </div>
         ZF <em>India</em>
       </div>
-      <div className="nav-sep" />
-      <div className="nav-links">
-        <button
-          className={`nav-link${page === 'dashboard' ? ' active' : ''}`}
-          onClick={() => onNavigate('dashboard')}
-        >
-          📊 Dashboard
-        </button>
-        <button
-          className={`nav-link${page === 'details' ? ' active' : ''}`}
-          onClick={() => onNavigate('details')}
-        >
-          🚚 Active Shipments
-        </button>
-        <button
-          className={`nav-link${page === 'delivered' ? ' active' : ''}`}
-          onClick={() => onNavigate('delivered')}
-        >
-          ✅ Delivered
-        </button>
-      </div>
+
       <div className="nav-right">
         <div className="nav-date">{navDate}</div>
-        {(canManageUsers || canManageSecurity) && (
-          <button className="nav-admin-btn" onClick={onOpenAdmin}>
-            ⚙️ Admin
-          </button>
-        )}
         <div className="nav-user-wrap" ref={menuRef}>
           <button
             className="nav-user"
@@ -99,14 +75,6 @@ export default function Navbar({ page, onNavigate, onLogout, user, onChangePassw
               >
                 🔑 Change password
               </button>
-              {(canManageUsers || canManageSecurity) && (
-                <button
-                  className="nav-menu-item"
-                  onClick={() => { setMenuOpen(false); onOpenAdmin(); }}
-                >
-                  ⚙️ Administration
-                </button>
-              )}
               <div className="nav-menu-sep" />
               <button className="nav-menu-item danger" onClick={onLogout}>
                 ⎋ Sign out

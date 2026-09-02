@@ -30,7 +30,7 @@ function fmtDate(iso) {
   });
 }
 
-export default function UserMaster({ currentUser, policy, onNavigate, embedded = false }) {
+export default function UserMaster({ currentUser, policy }) {
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -168,20 +168,15 @@ export default function UserMaster({ currentUser, policy, onNavigate, embedded =
   const lockedNow = (u) => u.lockedUntil && new Date(u.lockedUntil) > new Date();
 
   return (
-    <div className={embedded ? 'admin-page' : 'pg'}>
+    <div className="pg">
       <div className="pg-head">
         <div>
-          {!embedded && <div className="pg-title">User Master</div>}
+          <div className="pg-title">User Master</div>
           <div className="pg-sub">
             Manage who can sign in and what each person is allowed to do
           </div>
         </div>
         <div className="table-actions">
-          {!embedded && (
-            <button className="btn-sm btn-outline" onClick={() => onNavigate('dashboard')}>
-              ← Dashboard
-            </button>
-          )}
           <button
             className="btn-sm btn-primary"
             onClick={() => setForm({ ...BLANK })}
@@ -367,7 +362,7 @@ export default function UserMaster({ currentUser, policy, onNavigate, embedded =
               )}
             </div>
 
-            <label className="sec-toggle" style={{ marginBottom: 4 }}>
+            <label className="pw-toggle">
               <input
                 type="checkbox"
                 checked={form.mustChangePassword}
@@ -440,7 +435,7 @@ export default function UserMaster({ currentUser, policy, onNavigate, embedded =
                 All of this user's active sessions will be signed out immediately.
               </div>
             </div>
-            <label className="sec-toggle">
+            <label className="pw-toggle">
               <input
                 type="checkbox"
                 checked={resetForce}

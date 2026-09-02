@@ -144,9 +144,6 @@ export default function DeliveredShipments({ deliveredData, onNavigate, canExpor
               ⬇ Export CSV
             </button>
           )}
-          <button className="btn-sm btn-outline" onClick={() => onNavigate('dashboard')}>
-            ← Dashboard
-          </button>
         </div>
       </div>
 
