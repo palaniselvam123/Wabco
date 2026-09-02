@@ -24,6 +24,7 @@ export default function Dashboard({
   uploadBanner,
   onUpload,
   onNavigate,
+  canUpload = false,
 }) {
   const fileRef = useRef(null);
   const recordsRef = useRef(null);
@@ -148,19 +149,21 @@ export default function Dashboard({
             {anyFilter ? ' · Filters applied' : ''}
           </div>
         </div>
-        <div className="upload-chip">
-          <div className="upload-chip-icon">📤</div>
-          <div>
-            <h4>Upload DSR Report</h4>
-            <p>Accepts .xlsb / .xlsx / .xls</p>
+        {canUpload && (
+          <div className="upload-chip">
+            <div className="upload-chip-icon">📤</div>
+            <div>
+              <h4>Upload DSR Report</h4>
+              <p>Accepts .xlsb / .xlsx / .xls</p>
+            </div>
+            <div style={{ marginLeft: 10 }}>
+              <button className="btn-upload" onClick={() => fileRef.current?.click()}>
+                📂 Browse File
+              </button>
+              <input ref={fileRef} type="file" accept=".xlsb,.xlsx,.xls" style={{ display: 'none' }} onChange={onUpload} />
+            </div>
           </div>
-          <div style={{ marginLeft: 10 }}>
-            <button className="btn-upload" onClick={() => fileRef.current?.click()}>
-              📂 Browse File
-            </button>
-            <input ref={fileRef} type="file" accept=".xlsb,.xlsx,.xls" style={{ display: 'none' }} onChange={onUpload} />
-          </div>
-        </div>
+        )}
       </div>
 
       {uploadBanner && (

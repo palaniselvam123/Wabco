@@ -1,26 +1,26 @@
 import { useState } from 'react';
 import ZFLogo from './ZFLogo';
+import { login } from '../utils/auth';
 
-const VALID = [
-  { user: 'admin', pass: 'wabco2026' },
-  { user: 'logistics', pass: 'wabco2026' },
-];
-
-export default function Login({ onLogin }) {
-  const [username, setUsername] = useState('admin');
+export default function Login({ onLogin, notice }) {
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState(false);
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const u = username.trim();
-    const p = password.trim();
-    const ok = VALID.some((c) => c.user === u && c.pass === p);
-    if (ok) {
-      setError(false);
-      onLogin();
-    } else {
-      setError(true);
+    if (busy) return;
+    setBusy(true);
+    setError('');
+    try {
+      const result = await login(username.trim(), password);
+      onLogin(result);
+    } catch (err) {
+      setError(err.message || 'Sign in failed. Please try again.');
+      setPassword('');
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -73,14 +73,22 @@ export default function Login({ onLogin }) {
             <h2>Welcome Back</h2>
             <p>Sign in to access the logistics dashboard</p>
           </div>
+
+          {notice && <div className="login-notice">{notice}</div>}
+
           <div className="fg">
             <label>Username</label>
             <input
               type="text"
               placeholder="Enter username"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={(e) => {
+                setUsername(e.target.value);
+                setError('');
+              }}
               autoComplete="username"
+              autoFocus
+              disabled={busy}
             />
           </div>
           <div className="fg">
@@ -91,20 +99,19 @@ export default function Login({ onLogin }) {
               value={password}
               onChange={(e) => {
                 setPassword(e.target.value);
-                setError(false);
+                setError('');
               }}
               className={error ? 'error' : ''}
               autoComplete="current-password"
+              disabled={busy}
             />
           </div>
-          <button type="submit" className="btn-login">
-            Sign In to Dashboard →
+          <button type="submit" className="btn-login" disabled={busy}>
+            {busy ? 'Signing in…' : 'Sign In to Dashboard →'}
           </button>
-          {error && (
-            <div className="login-err">Invalid credentials. Please try again.</div>
-          )}
+          {error && <div className="login-err">{error}</div>}
           <div className="login-hint">
-            Demo access: <code>admin</code> / <code></code>
+            Access is managed by your administrator.
           </div>
         </form>
       </div>

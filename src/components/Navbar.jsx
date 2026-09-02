@@ -1,12 +1,41 @@
+import { useEffect, useRef, useState } from 'react';
 import ZFLogo from './ZFLogo';
 
-export default function Navbar({ page, onNavigate, onLogout }) {
+const ROLE_LABEL = {
+  admin: 'Administrator',
+  manager: 'Manager',
+  viewer: 'Viewer',
+};
+
+export default function Navbar({ page, onNavigate, onLogout, user, onChangePassword }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
   const navDate = new Date().toLocaleDateString('en-IN', {
     weekday: 'short',
     day: '2-digit',
     month: 'short',
     year: 'numeric',
   });
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDown = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
+    };
+    const onKey = (e) => e.key === 'Escape' && setMenuOpen(false);
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [menuOpen]);
+
+  const perms = user?.permissions || [];
+  const canManageUsers = perms.includes('manage_users');
+  const canManageSecurity = perms.includes('manage_security');
+  const initial = (user?.fullName || user?.username || '?').charAt(0).toUpperCase();
 
   return (
     <nav id="navbar">
@@ -36,16 +65,74 @@ export default function Navbar({ page, onNavigate, onLogout }) {
         >
           ✅ Delivered
         </button>
+        {canManageUsers && (
+          <button
+            className={`nav-link${page === 'users' ? ' active' : ''}`}
+            onClick={() => onNavigate('users')}
+          >
+            👥 Users
+          </button>
+        )}
+        {canManageSecurity && (
+          <button
+            className={`nav-link${page === 'security' ? ' active' : ''}`}
+            onClick={() => onNavigate('security')}
+          >
+            🔒 Security
+          </button>
+        )}
       </div>
       <div className="nav-right">
         <div className="nav-date">{navDate}</div>
-        <div className="nav-user">
-          <div className="nav-avatar">A</div>
-          Administrator
+        <div className="nav-user-wrap" ref={menuRef}>
+          <button
+            className="nav-user"
+            onClick={() => setMenuOpen((o) => !o)}
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+          >
+            <div className="nav-avatar">{initial}</div>
+            <span className="nav-user-text">
+              <strong>{user?.fullName || user?.username}</strong>
+              <em>{ROLE_LABEL[user?.role] || user?.role}</em>
+            </span>
+            <span className="nav-caret">▾</span>
+          </button>
+          {menuOpen && (
+            <div className="nav-menu" role="menu">
+              <div className="nav-menu-head">
+                <strong>{user?.fullName || user?.username}</strong>
+                <span>{user?.email || user?.username}</span>
+              </div>
+              <button
+                className="nav-menu-item"
+                onClick={() => { setMenuOpen(false); onChangePassword(); }}
+              >
+                🔑 Change password
+              </button>
+              {canManageUsers && (
+                <button
+                  className="nav-menu-item"
+                  onClick={() => { setMenuOpen(false); onNavigate('users'); }}
+                >
+                  👥 User Master
+                </button>
+              )}
+              {canManageSecurity && (
+                <button
+                  className="nav-menu-item"
+                  onClick={() => { setMenuOpen(false); onNavigate('security'); }}
+                >
+                  🔒 Security Master
+                </button>
+              )}
+              <div className="nav-menu-sep" />
+              <button className="nav-menu-item danger" onClick={onLogout}>
+                ⎋ Sign out
+              </button>
+            </div>
+          )}
         </div>
-        <button className="btn-logout" onClick={onLogout}>
-          Sign Out
-        </button>
       </div>
     </nav>
   );
