@@ -67,7 +67,7 @@ function Toggle({ label, hint, checked, onChange, disabled }) {
   );
 }
 
-export default function SecurityMaster({ onNavigate, onSettingsSaved }) {
+export default function SecurityMaster({ onNavigate, onSettingsSaved, embedded = false }) {
   const [settings, setSettings] = useState(null);
   const [roles, setRoles] = useState([]);
   const [events, setEvents] = useState([]);
@@ -142,10 +142,10 @@ export default function SecurityMaster({ onNavigate, onSettingsSaved }) {
 
   if (loading || !settings) {
     return (
-      <div className="pg">
+      <div className={embedded ? 'admin-page' : 'pg'}>
         <div className="pg-head">
           <div>
-            <div className="pg-title">Security Master</div>
+            {!embedded && <div className="pg-title">Security Master</div>}
             <div className="pg-sub">Loading settings…</div>
           </div>
         </div>
@@ -155,18 +155,20 @@ export default function SecurityMaster({ onNavigate, onSettingsSaved }) {
   }
 
   return (
-    <div className="pg">
+    <div className={embedded ? 'admin-page' : 'pg'}>
       <div className="pg-head">
         <div>
-          <div className="pg-title">Security Master</div>
+          {!embedded && <div className="pg-title">Security Master</div>}
           <div className="pg-sub">
             Access control, password rules, session limits and the audit trail
           </div>
         </div>
         <div className="table-actions">
-          <button className="btn-sm btn-outline" onClick={() => onNavigate('dashboard')}>
-            ← Dashboard
-          </button>
+          {!embedded && (
+            <button className="btn-sm btn-outline" onClick={() => onNavigate('dashboard')}>
+              ← Dashboard
+            </button>
+          )}
           <button className="btn-sm btn-primary" onClick={save} disabled={!dirty || busy}>
             {busy ? 'Saving…' : dirty ? 'Save Changes' : 'Saved'}
           </button>

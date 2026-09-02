@@ -165,6 +165,19 @@ export default async (req) => {
       changes.push('unlocked')
     }
 
+    // Explicit control over the first-sign-in rotation. Applied after any
+    // password reset above, so an administrator can hand someone a new
+    // password without also forcing them to change it immediately.
+    if (
+      typeof body.mustChangePassword === 'boolean' &&
+      body.mustChangePassword !== target.mustChangePassword
+    ) {
+      target.mustChangePassword = body.mustChangePassword
+      changes.push(
+        `change-at-next-login ${body.mustChangePassword ? 'on' : 'off'}`
+      )
+    }
+
     await saveUser(target)
     await audit(
       'user.updated',

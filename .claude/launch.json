@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "autoPort": false,
+  "configurations": [
+    {
+      "name": "zf-dashboard",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["netlify-cli", "dev", "--port", "8888", "--targetPort", "5173"],
+      "port": 8888
+    }
+  ]
+}

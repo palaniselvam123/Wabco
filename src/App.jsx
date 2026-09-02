@@ -5,8 +5,8 @@ import LoadingOverlay from './components/LoadingOverlay';
 import Dashboard from './components/Dashboard';
 import ActiveShipments from './components/ActiveShipments';
 import DeliveredShipments from './components/DeliveredShipments';
-import UserMaster from './components/UserMaster';
-import SecurityMaster from './components/SecurityMaster';
+import AdminPanel from './components/AdminPanel';
+import ConfirmUpload from './components/ConfirmUpload';
 import ChangePassword from './components/ChangePassword';
 import { DEF_ACTIVE, DEF_DELIVERED } from './data/defaults';
 import { readExcelFile } from './utils/excel';
@@ -22,6 +22,8 @@ export default function App() {
   const [settings, setSettings] = useState(null);
   const [sessionNotice, setSessionNotice] = useState('');
   const [changingPassword, setChangingPassword] = useState(false);
+  const [adminOpen, setAdminOpen] = useState(false);
+  const [pendingUpload, setPendingUpload] = useState(null);
 
   const [page, setPage] = useState('dashboard');
   const [loading, setLoading] = useState(false);
@@ -109,7 +111,8 @@ export default function App() {
     setSessionNotice('');
   };
 
-  const handleUpload = async (evt) => {
+  /** Validates the chosen file, then asks for explicit confirmation. */
+  const handleUpload = (evt) => {
     const file = evt.target.files?.[0];
     if (!file) return;
     evt.target.value = '';
@@ -137,6 +140,13 @@ export default function App() {
       }
     }
 
+    // Uploading merges into shared data every user sees, so never act on the
+    // file-picker alone — require a deliberate confirmation first.
+    setPendingUpload(file);
+  };
+
+  const runUpload = async (file) => {
+    setPendingUpload(null);
     setLoading(true);
     try {
       const incoming = await readExcelFile(file);
@@ -206,7 +216,7 @@ export default function App() {
     );
   }
 
-  const isAdmin = can(user, 'manage_users');
+  const canExport = can(user, 'export');
 
   return (
     <>
@@ -217,7 +227,25 @@ export default function App() {
         onLogout={handleLogout}
         user={user}
         onChangePassword={() => setChangingPassword(true)}
+        onOpenAdmin={() => setAdminOpen(true)}
       />
+
+      <AdminPanel
+        open={adminOpen}
+        onClose={() => setAdminOpen(false)}
+        currentUser={user}
+        policy={settings?.password}
+      />
+
+      {pendingUpload && (
+        <ConfirmUpload
+          file={pendingUpload}
+          activeCount={activeData.length}
+          deliveredCount={deliveredData.length}
+          onConfirm={() => runUpload(pendingUpload)}
+          onCancel={() => setPendingUpload(null)}
+        />
+      )}
       {page === 'dashboard' && (
         <Dashboard
           stats={stats}
@@ -228,27 +256,21 @@ export default function App() {
           onUpload={handleUpload}
           onNavigate={handleNavigate}
           canUpload={can(user, 'upload')}
+          canExport={canExport}
         />
       )}
       {page === 'details' && (
-        <ActiveShipments activeData={activeData} onNavigate={handleNavigate} />
-      )}
-      {page === 'delivered' && (
-        <DeliveredShipments deliveredData={deliveredData} onNavigate={handleNavigate} />
-      )}
-      {page === 'users' && isAdmin && (
-        <UserMaster
-          currentUser={user}
-          policy={settings?.password}
+        <ActiveShipments
+          activeData={activeData}
           onNavigate={handleNavigate}
+          canExport={canExport}
         />
       )}
-      {page === 'security' && can(user, 'manage_security') && (
-        <SecurityMaster
+      {page === 'delivered' && (
+        <DeliveredShipments
+          deliveredData={deliveredData}
           onNavigate={handleNavigate}
-          onSettingsSaved={(s) =>
-            setSettings((prev) => ({ ...prev, password: s.password, upload: s.upload, session: s.session }))
-          }
+          canExport={canExport}
         />
       )}
     </>

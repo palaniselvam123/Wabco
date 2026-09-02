@@ -16,6 +16,7 @@ const BLANK = {
   email: '',
   role: 'viewer',
   password: '',
+  mustChangePassword: true,
 };
 
 function fmtDate(iso) {
@@ -29,7 +30,7 @@ function fmtDate(iso) {
   });
 }
 
-export default function UserMaster({ currentUser, policy, onNavigate }) {
+export default function UserMaster({ currentUser, policy, onNavigate, embedded = false }) {
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -39,6 +40,7 @@ export default function UserMaster({ currentUser, policy, onNavigate }) {
   const [form, setForm] = useState(null); // null | {...BLANK} for add/edit
   const [resetFor, setResetFor] = useState(null); // user being password-reset
   const [resetPw, setResetPw] = useState('');
+  const [resetForce, setResetForce] = useState(true);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [busy, setBusy] = useState(false);
 
@@ -86,9 +88,14 @@ export default function UserMaster({ currentUser, policy, onNavigate }) {
             email: form.email,
             role: form.role,
             password: form.password,
+            mustChangePassword: form.mustChangePassword,
           }),
         });
-        setBanner(`User "${form.username}" created. They must set a new password at first sign-in.`);
+        setBanner(
+          form.mustChangePassword
+            ? `User "${form.username}" created. They must set a new password at first sign-in.`
+            : `User "${form.username}" created. They can sign in with the password you set.`
+        );
       } else {
         await apiFetch(API, {
           method: 'PUT',
@@ -97,6 +104,7 @@ export default function UserMaster({ currentUser, policy, onNavigate }) {
             fullName: form.fullName,
             email: form.email,
             role: form.role,
+            mustChangePassword: form.mustChangePassword,
           }),
         });
         setBanner(`User "${form.username}" updated.`);
@@ -129,8 +137,10 @@ export default function UserMaster({ currentUser, policy, onNavigate }) {
     if (passwordIssues(resetPw, policy).length || busy) return;
     await patch(
       resetFor.id,
-      { newPassword: resetPw },
-      `Password reset for "${resetFor.username}". They must change it at next sign-in.`
+      { newPassword: resetPw, mustChangePassword: resetForce },
+      resetForce
+        ? `Password reset for "${resetFor.username}". They must change it at next sign-in.`
+        : `Password reset for "${resetFor.username}". They can sign in with it as-is.`
     );
     setResetFor(null);
     setResetPw('');
@@ -158,18 +168,20 @@ export default function UserMaster({ currentUser, policy, onNavigate }) {
   const lockedNow = (u) => u.lockedUntil && new Date(u.lockedUntil) > new Date();
 
   return (
-    <div className="pg">
+    <div className={embedded ? 'admin-page' : 'pg'}>
       <div className="pg-head">
         <div>
-          <div className="pg-title">User Master</div>
+          {!embedded && <div className="pg-title">User Master</div>}
           <div className="pg-sub">
             Manage who can sign in and what each person is allowed to do
           </div>
         </div>
         <div className="table-actions">
-          <button className="btn-sm btn-outline" onClick={() => onNavigate('dashboard')}>
-            ← Dashboard
-          </button>
+          {!embedded && (
+            <button className="btn-sm btn-outline" onClick={() => onNavigate('dashboard')}>
+              ← Dashboard
+            </button>
+          )}
           <button
             className="btn-sm btn-primary"
             onClick={() => setForm({ ...BLANK })}
@@ -249,11 +261,12 @@ export default function UserMaster({ currentUser, policy, onNavigate }) {
                         email: u.email || '',
                         role: u.role,
                         password: '',
+                        mustChangePassword: !!u.mustChangePassword,
                       })}
                     >
                       Edit
                     </button>
-                    <button className="btn-mini" onClick={() => { setResetFor(u); setResetPw(''); }}>
+                    <button className="btn-mini" onClick={() => { setResetFor(u); setResetPw(''); setResetForce(true); }}>
                       Reset password
                     </button>
                     {lockedNow(u) && (
@@ -354,6 +367,23 @@ export default function UserMaster({ currentUser, policy, onNavigate }) {
               )}
             </div>
 
+            <label className="sec-toggle" style={{ marginBottom: 4 }}>
+              <input
+                type="checkbox"
+                checked={form.mustChangePassword}
+                onChange={(e) => setForm({ ...form, mustChangePassword: e.target.checked })}
+                disabled={busy}
+              />
+              <span>
+                <strong>Change password at next login</strong>
+                <em>
+                  {form.mustChangePassword
+                    ? 'They must set their own password before using the dashboard'
+                    : 'They can keep using their current password'}
+                </em>
+              </span>
+            </label>
+
             {isNew && (
               <div className="fg">
                 <label>Temporary Password</label>
@@ -368,7 +398,9 @@ export default function UserMaster({ currentUser, policy, onNavigate }) {
                   <div className="fg-hint warn">Needs: {pwIssues.join(', ')}</div>
                 )}
                 <div className="fg-hint">
-                  The user will be required to change this at first sign-in.
+                  {form.mustChangePassword
+                    ? 'The user will be required to change this at first sign-in.'
+                    : 'The user will sign in with this password and keep it.'}
                 </div>
               </div>
             )}
@@ -405,10 +437,25 @@ export default function UserMaster({ currentUser, policy, onNavigate }) {
                 </div>
               )}
               <div className="fg-hint">
-                All of this user's active sessions will be signed out immediately,
-                and they must set their own password at next sign-in.
+                All of this user's active sessions will be signed out immediately.
               </div>
             </div>
+            <label className="sec-toggle">
+              <input
+                type="checkbox"
+                checked={resetForce}
+                onChange={(e) => setResetForce(e.target.checked)}
+                disabled={busy}
+              />
+              <span>
+                <strong>Change password at next login</strong>
+                <em>
+                  {resetForce
+                    ? 'They must replace this password when they sign in'
+                    : 'They can keep using the password you set here'}
+                </em>
+              </span>
+            </label>
             <div className="modal-actions">
               <button type="button" className="btn-sm btn-outline" onClick={() => setResetFor(null)} disabled={busy}>
                 Cancel

@@ -12,7 +12,7 @@ function monthOf(r) {
   return isNaN(d) ? '' : d.toLocaleString('en-US', { month: 'short', year: 'numeric' });
 }
 
-export default function DeliveredShipments({ deliveredData, onNavigate }) {
+export default function DeliveredShipments({ deliveredData, onNavigate, canExport = false }) {
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState(null);
 
@@ -139,9 +139,11 @@ export default function DeliveredShipments({ deliveredData, onNavigate }) {
           <div className="pg-sub">All completed deliveries in FY 2026-27</div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn-sm btn-grn" onClick={() => exportCSV(rows, 'delivered')}>
-            ⬇ Export CSV
-          </button>
+          {canExport && (
+            <button className="btn-sm btn-grn" onClick={() => exportCSV(rows, 'delivered')}>
+              ⬇ Export CSV
+            </button>
+          )}
           <button className="btn-sm btn-outline" onClick={() => onNavigate('dashboard')}>
             ← Dashboard
           </button>

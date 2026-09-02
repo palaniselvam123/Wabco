@@ -7,7 +7,7 @@ const ROLE_LABEL = {
   viewer: 'Viewer',
 };
 
-export default function Navbar({ page, onNavigate, onLogout, user, onChangePassword }) {
+export default function Navbar({ page, onNavigate, onLogout, user, onChangePassword, onOpenAdmin }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -65,25 +65,14 @@ export default function Navbar({ page, onNavigate, onLogout, user, onChangePassw
         >
           ✅ Delivered
         </button>
-        {canManageUsers && (
-          <button
-            className={`nav-link${page === 'users' ? ' active' : ''}`}
-            onClick={() => onNavigate('users')}
-          >
-            👥 Users
-          </button>
-        )}
-        {canManageSecurity && (
-          <button
-            className={`nav-link${page === 'security' ? ' active' : ''}`}
-            onClick={() => onNavigate('security')}
-          >
-            🔒 Security
-          </button>
-        )}
       </div>
       <div className="nav-right">
         <div className="nav-date">{navDate}</div>
+        {(canManageUsers || canManageSecurity) && (
+          <button className="nav-admin-btn" onClick={onOpenAdmin}>
+            ⚙️ Admin
+          </button>
+        )}
         <div className="nav-user-wrap" ref={menuRef}>
           <button
             className="nav-user"
@@ -110,20 +99,12 @@ export default function Navbar({ page, onNavigate, onLogout, user, onChangePassw
               >
                 🔑 Change password
               </button>
-              {canManageUsers && (
+              {(canManageUsers || canManageSecurity) && (
                 <button
                   className="nav-menu-item"
-                  onClick={() => { setMenuOpen(false); onNavigate('users'); }}
+                  onClick={() => { setMenuOpen(false); onOpenAdmin(); }}
                 >
-                  👥 User Master
-                </button>
-              )}
-              {canManageSecurity && (
-                <button
-                  className="nav-menu-item"
-                  onClick={() => { setMenuOpen(false); onNavigate('security'); }}
-                >
-                  🔒 Security Master
+                  ⚙️ Administration
                 </button>
               )}
               <div className="nav-menu-sep" />

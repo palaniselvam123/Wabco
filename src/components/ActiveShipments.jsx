@@ -15,7 +15,7 @@ function beOverdue(r) {
   return !isNaN(bd) && (new Date() - bd) / 86400000 >= 2;
 }
 
-export default function ActiveShipments({ activeData, onNavigate }) {
+export default function ActiveShipments({ activeData, onNavigate, canExport = false }) {
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState(null);
 
@@ -157,9 +157,11 @@ export default function ActiveShipments({ activeData, onNavigate }) {
           <div className="pg-sub">All in-transit and customs clearance shipments</div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn-sm btn-grn" onClick={() => exportCSV(rows, 'active')}>
-            ⬇ Export CSV
-          </button>
+          {canExport && (
+            <button className="btn-sm btn-grn" onClick={() => exportCSV(rows, 'active')}>
+              ⬇ Export CSV
+            </button>
+          )}
           <button className="btn-sm btn-outline" onClick={() => onNavigate('dashboard')}>
             ← Dashboard
           </button>

@@ -25,6 +25,7 @@ export default function Dashboard({
   onUpload,
   onNavigate,
   canUpload = false,
+  canExport = false,
 }) {
   const fileRef = useRef(null);
   const recordsRef = useRef(null);
@@ -315,6 +316,7 @@ export default function Dashboard({
 
       {drilldown && (
         <ChartRecordsPanel
+          canExport={canExport}
           title={drilldown.title}
           subtitle={drilldown.subtitle}
           records={drilldown.records}

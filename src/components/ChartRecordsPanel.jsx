@@ -9,6 +9,7 @@ export default function ChartRecordsPanel({
   subtitle,
   records,
   type = 'delivered',
+  canExport = false,
   onClose,
 }) {
   const [selected, setSelected] = useState(null);
@@ -38,14 +39,16 @@ export default function ChartRecordsPanel({
         </div>
         <div className="record-detail-bar-meta">
           <span className="badge b-blue">{records.length} records</span>
-          <button
-            type="button"
-            className="btn-sm btn-grn"
-            onClick={() => exportCSV(records, type === 'active' ? 'active' : 'delivered')}
-            disabled={!records.length}
-          >
-            ⬇ Export CSV
-          </button>
+          {canExport && (
+            <button
+              type="button"
+              className="btn-sm btn-grn"
+              onClick={() => exportCSV(records, type === 'active' ? 'active' : 'delivered')}
+              disabled={!records.length}
+            >
+              ⬇ Export CSV
+            </button>
+          )}
           <button type="button" className="record-close" onClick={onClose} aria-label="Close">
             ✕
           </button>
