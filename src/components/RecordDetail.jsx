@@ -28,7 +28,8 @@ const FIELD_META = [
   },
   { keys: ['Qty', 'Quantity', 'QTY'], label: 'Quantity', emoji: '🔢', section: 'identity', format: 'number' },
   { keys: ['Unit', 'Plant', 'Destination'], label: 'Plant / Unit', emoji: '🏢', section: 'identity' },
-  { keys: ['Invoice No', 'Invoice No.', 'Inv No'], label: 'Invoice No.', emoji: '🧾', section: 'identity' },
+  { keys: ['Terms ', 'Terms', 'Incoterms'], label: 'Terms', emoji: '📜', section: 'identity' },
+  { keys: ['Invoice No', 'Invoice No.', 'Inv No', 'Shipper Invoice No'], label: 'Invoice No.', emoji: '🧾', section: 'identity' },
   {
     keys: ['Invoice Date', 'Inv Date'],
     label: 'Invoice Date',
@@ -50,8 +51,31 @@ const FIELD_META = [
   },
 
   { keys: ['Consol', 'Forwarder', 'FF'], label: 'Forwarder', emoji: '🚚', section: 'transport' },
-  { keys: ['HAWB No.', 'HAWB No', 'HAWB', 'House AWB'], label: 'HAWB No.', emoji: '📄', section: 'transport' },
-  { keys: ['MAWB No.', 'MAWB No', 'MAWB', 'Master AWB'], label: 'MAWB No.', emoji: '✈️', section: 'transport' },
+  { keys: ['MAWB No.', 'MAWB No', 'MAWB', 'MBL NO', 'MBL No'], label: 'MBL / MAWB No.', emoji: '📄', section: 'transport' },
+  { keys: ['HAWB No.', 'HAWB No', 'HAWB', 'HBL NO', 'HBL No'], label: 'HBL / HAWB No.', emoji: '📄', section: 'transport' },
+  {
+    keys: ['LCL/FCL', 'Load Type'],
+    label: 'LCL / FCL',
+    emoji: '🚢',
+    section: 'transport',
+  },
+  {
+    keys: ['Container No.', 'Container No', 'Container Number'],
+    label: 'Container No.',
+    emoji: '📦',
+    section: 'transport',
+  },
+  {
+    keys: ['VESSEL NAME', 'Vessel Name', 'Vessel'],
+    label: 'Vessel Name',
+    emoji: '⚓',
+    section: 'transport',
+    full: true,
+  },
+  { keys: ['IGM NO', 'IGM No'], label: 'IGM No.', emoji: '📋', section: 'transport' },
+  { keys: ['IGM DATE', 'IGM Date'], label: 'IGM Date', emoji: '📅', section: 'transport', format: 'date' },
+  { keys: ['INWARD', 'Inward'], label: 'Inward', emoji: '📥', section: 'transport', format: 'date' },
+  { keys: ['Flight No ', 'Flight No', 'Flight Number'], label: 'Flight No.', emoji: '✈️', section: 'transport' },
   {
     keys: ['Port Of Loading', 'Port of Loading', 'POL', 'Origin Port'],
     label: 'Port of Loading',
@@ -95,12 +119,11 @@ const FIELD_META = [
   { keys: ['B/E Date', 'BE Date'], label: 'B/E Date', emoji: '🗓️', section: 'customs', format: 'date' },
   {
     keys: ['Customs Cleared', 'Customs Status', 'Clearance Status'],
-    label: 'Customs Status',
+    label: 'Shipment Status',
     emoji: '✅',
     section: 'customs',
     format: 'status',
   },
-  { keys: ['Filter', 'Filter Flag', 'Status Flag'], label: 'Filter Flag', emoji: '🏷️', section: 'customs' },
   {
     keys: ['Duty Advised ', 'Duty Advised', 'Duty Advise Date'],
     label: 'Duty Advised',
@@ -123,14 +146,40 @@ const FIELD_META = [
     format: 'money',
   },
   {
-    keys: ['Assessable Value', 'Assessable Val', 'AV'],
+    keys: ['Assessable Value', 'Assessable Val', 'AV', 'ASS. VALUE'],
     label: 'Assessable Value',
     emoji: '📈',
     section: 'customs',
     format: 'money',
   },
-  { keys: ['ASN', 'ASN Status', 'ASN No'], label: 'ASN', emoji: '📨', section: 'customs' },
+  { keys: ['CHALLAN NO', 'Challan No'], label: 'Challan No.', emoji: '🧾', section: 'customs' },
+  { keys: ['OOC DATE', 'OOC Date'], label: 'OOC Date', emoji: '📅', section: 'customs', format: 'date' },
+  { keys: ['CFS', 'CFS Name'], label: 'CFS', emoji: '🏭', section: 'customs' },
+  {
+    keys: ['CFS CHARGES APPROXIMATELY', 'CFS Charges'],
+    label: 'CFS Charges (Approx.)',
+    emoji: '💵',
+    section: 'customs',
+    format: 'money',
+  },
+  {
+    keys: ['STORAGE CHARGES APROXIMATELY', 'Storage Charges'],
+    label: 'Storage Charges (Approx.)',
+    emoji: '💵',
+    section: 'customs',
+    format: 'money',
+  },
+  {
+    keys: ['TOTAL CFS CHARGES APROXIMATELY', 'Total CFS Charges'],
+    label: 'Total CFS Charges (Approx.)',
+    emoji: '💵',
+    section: 'customs',
+    format: 'money',
+  },
+  { keys: ['ASN', 'ASN Status', 'ASN No', 'ASN Number'], label: 'ASN', emoji: '📨', section: 'customs' },
   { keys: ['ASN Date'], label: 'ASN Date', emoji: '📆', section: 'customs', format: 'date' },
+  { keys: ['STATUS', 'Status'], label: 'Status', emoji: '🏷️', section: 'customs' },
+  { keys: ['Delivery Place', 'Delivery Location'], label: 'Delivery Place', emoji: '📍', section: 'customs' },
   {
     keys: ['Remarks', 'Remark', 'Comments'],
     label: 'Remarks',
@@ -140,26 +189,23 @@ const FIELD_META = [
   },
 
   {
-    keys: ['FRT', 'Freight', 'Air Freight', 'FRT (INR)'],
-    label: 'Freight (INR)',
-    emoji: '💸',
+    keys: ['Invoice Currency', 'Currency'],
+    label: 'Invoice Currency',
+    emoji: '💱',
     section: 'cost',
-    format: 'money',
   },
+  { keys: ['Unit Price'], label: 'Unit Price', emoji: '💲', section: 'cost', format: 'money' },
+  { keys: ['Invoice Rate', 'Inv Rate'], label: 'Invoice Rate', emoji: '📊', section: 'cost', format: 'money' },
+  { keys: ['Exchange Rate', 'FX Rate'], label: 'Exchange Rate', emoji: '💱', section: 'cost', format: 'number' },
   {
-    keys: ['EX', 'EX (INR)', 'Expenses', 'Other Charges'],
-    label: 'EX (INR)',
-    emoji: '📊',
+    keys: ['Total Amount In Inr', 'Total INR'],
+    label: 'Total Amount (INR)',
+    emoji: '🇮🇳',
     section: 'cost',
     format: 'money',
   },
-  {
-    keys: ['Total Cost', 'Total', 'Grand Total'],
-    label: 'Total Cost',
-    emoji: '🧮',
-    section: 'cost',
-    format: 'money',
-  },
+  { keys: ['FINE AMT', 'Fine Amount'], label: 'Fine Amount', emoji: '⚠️', section: 'cost', format: 'money' },
+  { keys: ['TRUCK', 'Truck'], label: 'Truck', emoji: '🚛', section: 'transport' },
 ];
 
 const SECTION_META = {
@@ -231,10 +277,19 @@ function buildSections(record, type) {
     });
   });
 
+  const EXCLUDED_OTHER = new Set([
+    'FRT', 'EX', 'Freight', 'freight', 'FREIGHT', 'FREIGHT CHARGES',
+    'Freight Charges', 'freight charges', 'Filter', 'filter',
+    'Delivery Place', 'Delivery Location', 'Wabco Delivered Date',
+    'FINE AMT', 'Fine Amount', 'TRUCK', 'Truck',
+  ]);
+
   Object.keys(record).forEach((key) => {
     if (used.has(key) || !hasUsefulValue(record[key])) return;
     const trimmed = key.trim();
-    if (!trimmed) return;
+    if (!trimmed || EXCLUDED_OTHER.has(trimmed)) return;
+    const lk = trimmed.toLowerCase();
+    if (/^frt$|^ex$|freight|filter flag|delivery place/.test(lk)) return;
     buckets.other.push({
       key,
       value: record[key],
@@ -271,7 +326,7 @@ function journeySteps(record, type) {
       {
         emoji: '✈️',
         label: 'In Transit',
-        value: getRecordValue(record, 'Consol') || 'Air freight',
+        value: getRecordValue(record, 'Consol') || getRecordValue(record, 'VESSEL NAME', 'Vessel Name') || 'In transit',
         done: true,
       },
       { emoji: '🛃', label: 'Customs', value: 'Cleared', done: true },
@@ -304,7 +359,7 @@ function journeySteps(record, type) {
     {
       emoji: '✈️',
       label: 'In Transit',
-      value: getRecordValue(record, 'Consol') || 'Air freight',
+      value: getRecordValue(record, 'Consol') || getRecordValue(record, 'VESSEL NAME', 'Vessel Name') || 'In transit',
       done: true,
     },
     {
@@ -369,9 +424,9 @@ export default function RecordDetail({ record, type = 'active', onClose }) {
             value: getRecordValue(record, 'Port Of Loading') || '—',
           },
           {
-            emoji: '💸',
-            label: 'Freight',
-            value: fmtMoney(getRecordValue(record, 'FRT')),
+            emoji: '🏢',
+            label: 'Plant',
+            value: unit || '—',
           },
         ]
       : [

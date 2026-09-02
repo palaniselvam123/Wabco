@@ -1,81 +1,135 @@
 import { useMemo, useState } from 'react';
-import Pagination from './Pagination';
+import DataTable from './DataTable';
+import StatusBadge from './StatusBadge';
 import RecordDetail from './RecordDetail';
-import { PAGE_SIZE } from '../data/defaults';
-import { fmtDate, fmtMoney } from '../utils/format';
+import { fmtDate, getField } from '../utils/format';
 import { exportCSV } from '../utils/csv';
 
-function unique(arr, fn) {
-  return [...new Set(arr.map(fn).filter(Boolean))].sort();
+function monthOf(r) {
+  const dv = getField(r, 'Wabco Delevered Date', 'Wabco Delivered Date') || getField(r, 'Date');
+  if (!dv) return '';
+  const d = new Date(dv);
+  return isNaN(d) ? '' : d.toLocaleString('en-US', { month: 'short', year: 'numeric' });
 }
 
 export default function DeliveredShipments({ deliveredData, onNavigate }) {
-  const [supplier, setSupplier] = useState('');
-  const [unit, setUnit] = useState('');
-  const [consol, setConsol] = useState('');
-  const [month, setMonth] = useState('');
   const [search, setSearch] = useState('');
-  const [page, setPage] = useState(1);
   const [selected, setSelected] = useState(null);
 
-  const suppliers = useMemo(
-    () => unique(deliveredData, (r) => r['Supplier']),
-    [deliveredData]
+  const rows = useMemo(() => {
+    if (!search) return deliveredData;
+    const q = search.toLowerCase();
+    return deliveredData.filter((r) => JSON.stringify(r).toLowerCase().includes(q));
+  }, [deliveredData, search]);
+
+  const columns = useMemo(
+    () => [
+      {
+        key: 'jobNo',
+        label: 'Job No.',
+        get: (r) => getField(r, 'Job No ', 'Job No', 'Job'),
+        render: (r, v) => <span className="mono" style={{ color: '#1d4ed8' }}>{v || '—'}</span>,
+      },
+      {
+        key: 'delivered',
+        label: 'Delivered Date',
+        type: 'date',
+        get: (r) => getField(r, 'Wabco Delevered Date', 'Wabco Delivered Date'),
+        render: (r, v) => <span style={{ fontWeight: 500 }}>{fmtDate(v)}</span>,
+      },
+      { key: 'month', label: 'Month', get: monthOf },
+      { key: 'date', label: 'Job Date', type: 'date', get: (r) => getField(r, 'Date'), render: (r, v) => fmtDate(v) },
+      {
+        key: 'supplier',
+        label: 'Supplier',
+        get: (r) => getField(r, 'Supplier'),
+        render: (r, v) => <span className="trunc" title={v || ''}>{v || '—'}</span>,
+      },
+      {
+        key: 'material',
+        label: 'Material',
+        get: (r) => getField(r, 'Material Description', 'Material'),
+        render: (r, v) => <span className="trunc" style={{ maxWidth: 160 }} title={v || ''}>{v || '—'}</span>,
+      },
+      {
+        key: 'part',
+        label: 'Part No.',
+        get: (r) => getField(r, 'Part No', 'Part No.'),
+        render: (r, v) => <span className="mono">{v || '—'}</span>,
+      },
+      {
+        key: 'qty',
+        label: 'Qty',
+        type: 'number',
+        align: 'right',
+        get: (r) => getField(r, 'Qty', 'Quantity'),
+        render: (r, v) => (v != null && v !== '' ? Number(v).toLocaleString() : '—'),
+      },
+      { key: 'consol', label: 'Forwarder', get: (r) => getField(r, 'Consol', 'Forwarder') },
+      { key: 'port', label: 'Port of Loading', get: (r) => getField(r, 'Port Of Loading', 'POL') },
+      { key: 'country', label: 'Country', get: (r) => getField(r, 'Country Of Origin', 'COO') },
+      {
+        key: 'mode',
+        label: 'Mode',
+        get: (r) => getField(r, 'Mode'),
+        render: (r, v) => (v ? <span className="badge b-blue" style={{ fontSize: 11 }}>{v}</span> : '—'),
+      },
+      { key: 'lclfcl', label: 'LCL/FCL', get: (r) => getField(r, 'LCL/FCL', 'Load Type') },
+      {
+        key: 'eta',
+        label: 'ETA MAA',
+        type: 'date',
+        get: (r) => getField(r, 'Eta Maa', 'ETA MAA'),
+        render: (r, v) => fmtDate(v),
+      },
+      {
+        key: 'beNo',
+        label: 'B/E No.',
+        get: (r) => getField(r, 'B/E No', 'B/E No.'),
+        render: (r, v) => <span className="mono">{v || '—'}</span>,
+      },
+      { key: 'beDate', label: 'B/E Date', type: 'date', get: (r) => getField(r, 'B/E Date', 'BE Date'), render: (r, v) => fmtDate(v) },
+      {
+        key: 'status',
+        label: 'Shipment Status',
+        get: (r) => getField(r, 'Customs Cleared', 'Customs Status'),
+        render: (r, v) => <StatusBadge value={v} />,
+      },
+      {
+        key: 'ooc',
+        label: 'OOC Date',
+        type: 'date',
+        get: (r) => getField(r, 'OOC DATE', 'OOC Date'),
+        render: (r, v) => fmtDate(v),
+      },
+      {
+        key: 'duty',
+        label: 'Duty (INR)',
+        type: 'number',
+        align: 'right',
+        get: (r) => getField(r, 'Duty Amount', 'Duty'),
+        render: (r, v) => (
+          <span className="mono" style={{ fontSize: 12 }}>
+            {v ? '₹' + Number(v).toLocaleString('en-IN') : '—'}
+          </span>
+        ),
+      },
+      { key: 'cfs', label: 'CFS Name', get: (r) => getField(r, 'CFS', 'CFS Name') },
+      {
+        key: 'plant',
+        label: 'Plant',
+        get: (r) => getField(r, 'Unit', 'Plant'),
+        render: (r, v) => <span className="badge b-blue">{v || '—'}</span>,
+      },
+      {
+        key: 'remarks',
+        label: 'Remarks',
+        get: (r) => getField(r, 'Remarks'),
+        render: (r, v) => <span className="trunc" style={{ maxWidth: 160 }} title={v || ''}>{v || '—'}</span>,
+      },
+    ],
+    []
   );
-  const units = useMemo(() => unique(deliveredData, (r) => r['Unit']), [deliveredData]);
-  const consols = useMemo(
-    () => unique(deliveredData, (r) => r['Consol']),
-    [deliveredData]
-  );
-  const months = useMemo(() => {
-    return [
-      ...new Set(
-        deliveredData
-          .map((r) => {
-            const dv = r['Wabco Delevered Date'] || r['Date'];
-            if (!dv) return null;
-            const d = new Date(dv);
-            if (isNaN(d)) return null;
-            return d.toLocaleString('en-US', { month: 'short', year: 'numeric' });
-          })
-          .filter(Boolean)
-      ),
-    ].sort((a, b) => new Date(a) - new Date(b));
-  }, [deliveredData]);
-
-  const filtered = useMemo(() => {
-    return deliveredData.filter((r) => {
-      if (supplier && r['Supplier'] !== supplier) return false;
-      if (unit && r['Unit'] !== unit) return false;
-      if (consol && r['Consol'] !== consol) return false;
-      if (month) {
-        const dv = r['Wabco Delevered Date'] || r['Date'];
-        if (!dv) return false;
-        const d = new Date(dv);
-        if (isNaN(d)) return false;
-        if (d.toLocaleString('en-US', { month: 'short', year: 'numeric' }) !== month)
-          return false;
-      }
-      if (search && !JSON.stringify(r).toLowerCase().includes(search.toLowerCase()))
-        return false;
-      return true;
-    });
-  }, [deliveredData, supplier, unit, consol, month, search]);
-
-  const total = filtered.length;
-  const pages = Math.ceil(total / PAGE_SIZE) || 1;
-  const start = (page - 1) * PAGE_SIZE;
-  const end = Math.min(start + PAGE_SIZE, total);
-  const pageRows = filtered.slice(start, end);
-
-  const clearFilters = () => {
-    setSupplier('');
-    setUnit('');
-    setConsol('');
-    setMonth('');
-    setSearch('');
-    setPage(1);
-  };
 
   return (
     <div className="pg">
@@ -85,10 +139,7 @@ export default function DeliveredShipments({ deliveredData, onNavigate }) {
           <div className="pg-sub">All completed deliveries in FY 2026-27</div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button
-            className="btn-sm btn-grn"
-            onClick={() => exportCSV(filtered, 'delivered')}
-          >
+          <button className="btn-sm btn-grn" onClick={() => exportCSV(rows, 'delivered')}>
             ⬇ Export CSV
           </button>
           <button className="btn-sm btn-outline" onClick={() => onNavigate('dashboard')}>
@@ -97,183 +148,18 @@ export default function DeliveredShipments({ deliveredData, onNavigate }) {
         </div>
       </div>
 
-      <div className="filter-bar">
-        <div className="fg-inline">
-          <label>Supplier</label>
-          <select
-            value={supplier}
-            onChange={(e) => {
-              setSupplier(e.target.value);
-              setPage(1);
-            }}
-          >
-            <option value="">All</option>
-            {suppliers.map((v) => (
-              <option key={v}>{v}</option>
-            ))}
-          </select>
-        </div>
-        <div className="fg-inline">
-          <label>Plant</label>
-          <select
-            value={unit}
-            onChange={(e) => {
-              setUnit(e.target.value);
-              setPage(1);
-            }}
-          >
-            <option value="">All</option>
-            {units.map((v) => (
-              <option key={v}>{v}</option>
-            ))}
-          </select>
-        </div>
-        <div className="fg-inline">
-          <label>Forwarder</label>
-          <select
-            value={consol}
-            onChange={(e) => {
-              setConsol(e.target.value);
-              setPage(1);
-            }}
-          >
-            <option value="">All</option>
-            {consols.map((v) => (
-              <option key={v}>{v}</option>
-            ))}
-          </select>
-        </div>
-        <div className="fg-inline">
-          <label>Month</label>
-          <select
-            value={month}
-            onChange={(e) => {
-              setMonth(e.target.value);
-              setPage(1);
-            }}
-          >
-            <option value="">All</option>
-            {months.map((v) => (
-              <option key={v}>{v}</option>
-            ))}
-          </select>
-        </div>
-        <div className="fg-inline">
-          <label>Search</label>
-          <input
-            placeholder="Job No / Supplier…"
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-          />
-        </div>
-        <button className="btn-sm btn-outline" onClick={clearFilters}>
-          ✕ Clear
-        </button>
-      </div>
-
-      <div className="table-card">
-        <div className="table-head">
-          <h3>Delivered Shipments ({total})</h3>
-          <div className="table-actions">
-            <span style={{ fontSize: 11.5, color: 'var(--muted)' }}>
-              Click a row for full details
-            </span>
-          </div>
-        </div>
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Job No.</th>
-                <th>Delivered Date</th>
-                <th>Supplier</th>
-                <th>Material</th>
-                <th className="tr">Qty</th>
-                <th>Forwarder</th>
-                <th>Port of Loading</th>
-                <th>B/E No.</th>
-                <th>Plant</th>
-                <th className="tr">FRT (INR)</th>
-                <th className="tr">EX (INR)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pageRows.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={11}
-                    style={{ textAlign: 'center', padding: 24, color: 'var(--muted)' }}
-                  >
-                    No records match the filters.
-                  </td>
-                </tr>
-              ) : (
-                pageRows.map((r, i) => (
-                  <tr
-                    key={r['Job No '] || i}
-                    className="clickable-row"
-                    tabIndex={0}
-                    onClick={() => setSelected(r)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        setSelected(r);
-                      }
-                    }}
-                  >
-                    <td>
-                      <span className="mono" style={{ color: '#1d4ed8' }}>
-                        {r['Job No '] || '—'}
-                      </span>
-                    </td>
-                    <td style={{ fontWeight: 500 }}>
-                      {fmtDate(r['Wabco Delevered Date'])}
-                    </td>
-                    <td>
-                      <span className="trunc">{r['Supplier'] || '—'}</span>
-                    </td>
-                    <td>
-                      <span className="trunc">{r['Material Description'] || '—'}</span>
-                    </td>
-                    <td className="tr">
-                      {r['Qty'] != null ? Number(r['Qty']).toLocaleString() : '—'}
-                    </td>
-                    <td>{r['Consol'] || '—'}</td>
-                    <td>{r['Port Of Loading'] || '—'}</td>
-                    <td className="mono">{r['B/E No'] || '—'}</td>
-                    <td>
-                      <span className="badge b-blue">{r['Unit'] || '—'}</span>
-                    </td>
-                    <td
-                      className="tr"
-                      style={{ fontWeight: 600, color: 'var(--primary)' }}
-                    >
-                      {fmtMoney(r['FRT'])}
-                    </td>
-                    <td className="tr">{fmtMoney(r['EX'])}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-        <Pagination
-          current={page}
-          total={pages}
-          totalRows={total}
-          onPage={setPage}
-        />
-      </div>
+      <DataTable
+        title="Delivered Shipments"
+        columns={columns}
+        rows={rows}
+        search={search}
+        onSearch={setSearch}
+        searchPlaceholder="Job No / Supplier / Part…"
+        onRowClick={setSelected}
+      />
 
       {selected && (
-        <RecordDetail
-          record={selected}
-          type="delivered"
-          onClose={() => setSelected(null)}
-        />
+        <RecordDetail record={selected} type="delivered" onClose={() => setSelected(null)} />
       )}
     </div>
   );

@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -98,17 +100,129 @@ function fmtCompactInr(v) {
 }
 
 function ChartCard({ title, sub, badge, tall, children }) {
+  const [fs, setFs] = useState(false);
+
+  // Esc closes fullscreen; lock background scroll while open
+  useEffect(() => {
+    if (!fs) return;
+    const onKey = (e) => e.key === 'Escape' && setFs(false);
+    document.addEventListener('keydown', onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [fs]);
+
   return (
-    <div className={`chart-card${tall ? ' chart-card-tall' : ''}`}>
-      <div className="chart-head">
-        <div>
-          <div className="chart-title">{title}</div>
-          {sub && <div className="chart-sub">{sub}</div>}
+    <>
+      <div className={`chart-card${tall ? ' chart-card-tall' : ''}`}>
+        <div className="chart-head">
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="chart-title">{title}</div>
+            {sub && <div className="chart-sub">{sub}</div>}
+          </div>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
+            {badge && <div className="chart-badge">{badge}</div>}
+            <button
+              onClick={() => setFs(true)}
+              title="Fullscreen"
+              style={{
+                background: 'rgba(13,31,60,.07)',
+                border: '1px solid #e2e8f0',
+                borderRadius: 6,
+                width: 28,
+                height: 28,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 13,
+                color: '#475569',
+                flexShrink: 0,
+              }}
+            >
+              ⛶
+            </button>
+          </div>
         </div>
-        {badge && <div className="chart-badge">{badge}</div>}
+        {!fs && <div className="chart-body">{children}</div>}
       </div>
-      <div className="chart-body">{children}</div>
-    </div>
+
+      {fs &&
+        createPortal(
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100vw',
+              height: '100vh',
+              background: '#fff',
+              zIndex: 11000,
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '14px 26px',
+                borderBottom: '1px solid #e8eef5',
+                background: '#0d1f3c',
+                flexShrink: 0,
+              }}
+            >
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 18, color: '#fff' }}>{title}</div>
+                {sub && (
+                  <div style={{ fontSize: 13, color: 'rgba(255,255,255,.65)', marginTop: 2 }}>
+                    {sub}
+                  </div>
+                )}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                {badge && (
+                  <span
+                    style={{
+                      background: 'rgba(255,255,255,.15)',
+                      color: '#fff',
+                      borderRadius: 20,
+                      padding: '4px 12px',
+                      fontSize: 12,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {badge}
+                  </span>
+                )}
+                <button
+                  onClick={() => setFs(false)}
+                  style={{
+                    background: '#f07c2c',
+                    border: 'none',
+                    borderRadius: 8,
+                    padding: '7px 16px',
+                    cursor: 'pointer',
+                    fontSize: 13,
+                    color: '#fff',
+                    fontWeight: 700,
+                  }}
+                >
+                  ✕ Exit fullscreen
+                </button>
+              </div>
+            </div>
+            <div style={{ flex: 1, minHeight: 0, padding: '22px 28px 28px' }}>
+              <div style={{ width: '100%', height: '100%', position: 'relative' }}>{children}</div>
+            </div>
+          </div>,
+          document.body
+        )}
+    </>
   );
 }
 
@@ -134,14 +248,23 @@ function donutLabels() {
   };
 }
 
+function fmtCompactInrAxis(v) {
+  const n = Number(v) || 0;
+  if (n >= 1e7) return '₹' + (n / 1e7).toFixed(1) + 'Cr';
+  if (n >= 1e5) return '₹' + (n / 1e5).toFixed(0) + 'L';
+  return '₹' + Math.round(n).toLocaleString('en-IN');
+}
+
 export default function DashboardCharts({ stats, onChartClick }) {
   const monthly = stats.monthly || DEF.monthly;
-  const mFreight = stats.mFreight || stats.monthlyFreight || DEF.mFreight;
   const consol = stats.consol || DEF.consol;
   const units = stats.units || DEF.units;
   const sups = stats.suppliers_chart || stats.topSuppliers || DEF.suppliers_chart;
   const customs = stats.customs || stats.customsStatus || DEF.customs;
   const ports = stats.ports || DEF.ports;
+  const supsByVal = stats.suppliersByValue || { labels: [], data: [] };
+  const eva = stats.estimateVsActual || { labels: [], estimate: [], actual: [] };
+  const airVsSea = stats.airVsSea || { air: 0, sea: 0 };
 
   const supLabels = Array.isArray(sups?.labels) ? sups.labels : DEF.suppliers_chart.labels;
   const supData = Array.isArray(sups?.data) ? sups.data : DEF.suppliers_chart.data;
@@ -151,12 +274,11 @@ export default function DashboardCharts({ stats, onChartClick }) {
       <div className="charts-row cr2">
         <ChartCard
           title="Monthly Delivery Trend"
-          sub="Shipments vs Freight cost by month"
+          sub="Completed shipments by month"
           badge="FY 2026-27"
           tall
         >
-          <Chart
-            type="bar"
+          <Bar
             data={{
               labels: monthly.labels,
               datasets: [
@@ -166,37 +288,6 @@ export default function DashboardCharts({ stats, onChartClick }) {
                   backgroundColor: 'rgba(59,130,246,.85)',
                   borderRadius: 6,
                   maxBarThickness: 48,
-                  yAxisID: 'y',
-                  datalabels: {
-                    anchor: 'end',
-                    align: 'top',
-                    offset: 2,
-                    color: '#1d4ed8',
-                    font: LABEL_FONT,
-                    formatter: (v) => v,
-                  },
-                },
-                {
-                  label: 'Freight (INR)',
-                  data: mFreight.data,
-                  type: 'line',
-                  borderColor: '#f07c2c',
-                  backgroundColor: 'rgba(240,124,44,.1)',
-                  borderWidth: 3,
-                  pointBackgroundColor: '#f07c2c',
-                  pointRadius: 5,
-                  pointHoverRadius: 7,
-                  tension: 0.35,
-                  yAxisID: 'y1',
-                  fill: true,
-                  datalabels: {
-                    anchor: 'end',
-                    align: 'top',
-                    offset: 6,
-                    color: '#c2410c',
-                    font: { ...LABEL_FONT, size: 10 },
-                    formatter: (v) => fmtCompactInr(v),
-                  },
                 },
               ],
             }}
@@ -204,57 +295,23 @@ export default function DashboardCharts({ stats, onChartClick }) {
               responsive: true,
               maintainAspectRatio: false,
               animation: { duration: 700 },
-              interaction: { mode: 'index', intersect: false },
               layout: { padding: { top: 22, right: 8, bottom: 4, left: 4 } },
               ...clickOpts('monthly', onChartClick, monthly.labels),
               plugins: {
-                legend: { ...LEGEND, position: 'top' },
-                datalabels: { display: true },
-                tooltip: {
-                  ...TT,
-                  callbacks: {
-                    label: (ctx) => {
-                      if (ctx.dataset.yAxisID === 'y1') {
-                        return `${ctx.dataset.label}: ₹${Math.round(ctx.raw).toLocaleString('en-IN')}`;
-                      }
-                      return `${ctx.dataset.label}: ${ctx.raw}`;
-                    },
-                  },
+                legend: { display: false },
+                datalabels: {
+                  anchor: 'end',
+                  align: 'top',
+                  offset: 2,
+                  color: '#1d4ed8',
+                  font: LABEL_FONT,
+                  formatter: (v) => v,
                 },
+                tooltip: { ...TT, callbacks: { label: (ctx) => ` Shipments: ${ctx.raw}` } },
               },
               scales: {
-                x: {
-                  grid: { display: false },
-                  ticks: { ...tick, font: { size: 12.5 } },
-                },
-                y: {
-                  position: 'left',
-                  grid: { color: '#e8eef5' },
-                  ticks: tick,
-                  grace: '12%',
-                  title: {
-                    display: true,
-                    text: 'Shipments',
-                    color: '#64748b',
-                    font: { size: 12, weight: '600' },
-                  },
-                },
-                y1: {
-                  position: 'right',
-                  grid: { display: false },
-                  ticks: {
-                    ...tick,
-                    color: '#c2410c',
-                    callback: (v) => '₹' + (v / 1e5).toFixed(0) + 'L',
-                  },
-                  grace: '18%',
-                  title: {
-                    display: true,
-                    text: 'Freight (INR)',
-                    color: '#c2410c',
-                    font: { size: 12, weight: '600' },
-                  },
-                },
+                x: { grid: { display: false }, ticks: { ...tick, font: { size: 12.5 } } },
+                y: { grid: { color: '#e8eef5' }, ticks: tick, grace: '12%', beginAtZero: true },
               },
             }}
           />
@@ -305,7 +362,7 @@ export default function DashboardCharts({ stats, onChartClick }) {
 
       <div className="charts-row cr3">
         <ChartCard
-          title="Top Suppliers by Volume"
+          title="Top Suppliers by Shipments"
           sub="Delivered shipments per vendor"
           badge="Top 8"
           tall
@@ -461,69 +518,31 @@ export default function DashboardCharts({ stats, onChartClick }) {
       </div>
 
       <div className="charts-row cr2">
-        <ChartCard
-          title="Monthly Freight Expenditure (INR)"
-          sub="Air freight cost trend FY 26-27"
-          tall
-        >
-          <Line
+        <ChartCard title="Air vs Sea Shipments" sub="Shipments split by transport mode" tall>
+          <Doughnut
             data={{
-              labels: mFreight.labels,
-              datasets: [
-                {
-                  label: 'Freight (INR)',
-                  data: mFreight.data,
-                  borderColor: '#0d1f3c',
-                  backgroundColor: 'rgba(13,31,60,.08)',
-                  borderWidth: 3,
-                  pointBackgroundColor: '#f07c2c',
-                  pointBorderColor: '#fff',
-                  pointBorderWidth: 2,
-                  pointRadius: 6,
-                  pointHoverRadius: 8,
-                  tension: 0.35,
-                  fill: true,
-                },
-              ],
+              labels: ['Air (AIC)', 'Sea (SIC)'],
+              datasets: [{
+                data: [airVsSea.air, airVsSea.sea],
+                backgroundColor: ['#3b82f6', '#0d1f3c'],
+                borderWidth: 3,
+                borderColor: '#fff',
+                hoverOffset: 10,
+              }],
             }}
             options={{
               responsive: true,
               maintainAspectRatio: false,
+              cutout: '55%',
               animation: { duration: 700 },
-              layout: { padding: { top: 22 } },
-              ...clickOpts('freight', onChartClick, mFreight.labels),
               plugins: {
-                legend: { display: false },
-                datalabels: {
-                  anchor: 'end',
-                  align: 'top',
-                  offset: 6,
-                  color: '#0d1f3c',
-                  font: LABEL_FONT,
-                  formatter: (v) => fmtCompactInr(v),
-                },
-                tooltip: {
-                  ...TT,
-                  callbacks: {
-                    label: (ctx) =>
-                      ` ₹${Math.round(ctx.raw).toLocaleString('en-IN')}`,
-                  },
-                },
-              },
-              scales: {
-                x: {
-                  grid: { display: false },
-                  ticks: { ...tick, font: { size: 12.5 } },
-                },
-                y: {
-                  grid: { color: '#e8eef5' },
-                  ticks: {
-                    ...tick,
-                    callback: (v) => '₹' + (v / 1e5).toFixed(0) + 'L',
-                  },
-                  beginAtZero: true,
-                  grace: '18%',
-                },
+                datalabels: donutLabels(),
+                tooltip: { ...TT, callbacks: { label: (ctx) => {
+                  const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                  const pct = total ? ((ctx.raw / total) * 100).toFixed(1) : 0;
+                  return ` ${ctx.label}: ${ctx.raw} (${pct}%)`;
+                }}},
+                legend: { ...LEGEND, position: 'bottom' },
               },
             }}
           />
@@ -580,6 +599,141 @@ export default function DashboardCharts({ stats, onChartClick }) {
               },
             }}
           />
+        </ChartCard>
+      </div>
+
+      <div className="charts-row cr2">
+        <ChartCard title="Top Suppliers by Invoice Value" sub="Cumulative invoice value INR — Top 8" badge="Top 8" tall>
+          <Bar
+            data={{
+              labels: supsByVal.labels.map((l) => shorten(l, 24)),
+              datasets: [{
+                label: 'Invoice Value (INR)',
+                data: supsByVal.data,
+                backgroundColor: PALETTE.bar,
+                borderRadius: 5,
+                maxBarThickness: 22,
+              }],
+            }}
+            options={{
+              indexAxis: 'y',
+              responsive: true,
+              maintainAspectRatio: false,
+              animation: { duration: 700 },
+              layout: { padding: { right: 56 } },
+              plugins: {
+                legend: { display: false },
+                datalabels: {
+                  anchor: 'end', align: 'right', offset: 4,
+                  color: '#0d1f3c', font: LABEL_FONT,
+                  formatter: (v) => fmtCompactInr(v), clip: false,
+                },
+                tooltip: { ...TT, callbacks: {
+                  title: (items) => supsByVal.labels[items[0].dataIndex] || items[0].label,
+                  label: (ctx) => ` ${fmtCompactInr(ctx.raw)}`,
+                }},
+              },
+              scales: {
+                x: { grid: { color: '#e8eef5' }, ticks: { ...tick, callback: fmtCompactInrAxis }, beginAtZero: true, grace: '18%' },
+                y: { grid: { display: false }, ticks: { ...tick, font: { size: 11.5 }, color: '#1e293b' } },
+              },
+            }}
+          />
+        </ChartCard>
+
+        <ChartCard title="Estimate vs Actual Cost" sub="Invoice Rate vs Assessable Value by month" tall>
+          <Bar
+            data={{
+              labels: eva.labels,
+              datasets: [
+                {
+                  label: 'Invoice Rate (Est.)',
+                  data: eva.estimate,
+                  backgroundColor: 'rgba(59,130,246,.75)',
+                  borderRadius: 5,
+                  maxBarThickness: 28,
+                },
+                {
+                  label: 'Assessable Value (Act.)',
+                  data: eva.actual,
+                  backgroundColor: 'rgba(240,124,44,.85)',
+                  borderRadius: 5,
+                  maxBarThickness: 28,
+                },
+              ],
+            }}
+            options={{
+              responsive: true,
+              maintainAspectRatio: false,
+              animation: { duration: 700 },
+              interaction: { mode: 'index', intersect: false },
+              layout: { padding: { top: 20 } },
+              plugins: {
+                legend: { ...LEGEND, position: 'top' },
+                datalabels: { display: false },
+                tooltip: { ...TT, callbacks: {
+                  label: (ctx) => ` ${ctx.dataset.label}: ₹${Math.round(ctx.raw).toLocaleString('en-IN')}`,
+                }},
+              },
+              scales: {
+                x: { grid: { display: false }, ticks: { ...tick, font: { size: 12 } } },
+                y: { grid: { color: '#e8eef5' }, ticks: { ...tick, callback: fmtCompactInrAxis }, beginAtZero: true, grace: '15%' },
+              },
+            }}
+          />
+        </ChartCard>
+      </div>
+
+      <div className="charts-row">
+        <ChartCard
+          title="ETA Arrival Forecast"
+          sub="Active shipments arriving per day — next 14 days"
+          badge="Active"
+          tall
+        >
+          {(() => {
+            const etaData = stats.etaChart || { labels: [], data: [] };
+            return (
+              <Bar
+                data={{
+                  labels: etaData.labels,
+                  datasets: [
+                    {
+                      label: 'Shipments ETA',
+                      data: etaData.data,
+                      backgroundColor: etaData.data.map((_, i) =>
+                        i === 0 ? 'rgba(240,124,44,.9)' : 'rgba(59,130,246,.75)'
+                      ),
+                      borderRadius: 6,
+                      maxBarThickness: 40,
+                    },
+                  ],
+                }}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  animation: { duration: 700 },
+                  layout: { padding: { top: 24, right: 8, bottom: 4, left: 4 } },
+                  plugins: {
+                    legend: { display: false },
+                    datalabels: {
+                      anchor: 'end',
+                      align: 'top',
+                      offset: 2,
+                      color: '#1d4ed8',
+                      font: LABEL_FONT,
+                      formatter: (v) => (v ? v : ''),
+                    },
+                    tooltip: { ...TT, callbacks: { label: (ctx) => ` ETA Shipments: ${ctx.raw}` } },
+                  },
+                  scales: {
+                    x: { grid: { display: false }, ticks: { ...tick, font: { size: 11 }, maxRotation: 45 } },
+                    y: { grid: { color: '#e8eef5' }, ticks: { ...tick, stepSize: 1 }, beginAtZero: true, grace: '15%' },
+                  },
+                }}
+              />
+            );
+          })()}
         </ChartCard>
       </div>
     </>

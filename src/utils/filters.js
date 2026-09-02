@@ -14,50 +14,54 @@ export function recordMonth(r) {
   return d.toLocaleString('en-US', { month: 'short', year: 'numeric' });
 }
 
+// All filter fields use arrays for multi-select; search stays a string
+export function emptyFilters() {
+  return {
+    supplier: [],
+    consol: [],
+    unit: [],
+    status: [],
+    port: [],
+    origin: [],
+    lclFcl: [],   // LCL / FCL container type (replaces free-text Mode)
+    month: [],
+    search: '',
+  };
+}
+
+export function hasActiveFilters(filters) {
+  const { search, ...rest } = filters || {};
+  return Boolean(search) || Object.values(rest).some((v) => Array.isArray(v) && v.length > 0);
+}
+
 export function matchesDashboardFilters(r, filters) {
   const {
-    supplier = '',
-    consol = '',
-    unit = '',
-    status = '',
-    port = '',
-    origin = '',
-    mode = '',
-    month = '',
+    supplier = [],
+    consol = [],
+    unit = [],
+    status = [],
+    port = [],
+    origin = [],
+    lclFcl = [],
+    month = [],
     search = '',
   } = filters || {};
 
-  if (supplier && getField(r, 'Supplier') !== supplier) return false;
-  if (consol && getField(r, 'Consol', 'Forwarder') !== consol) return false;
-  if (unit && getField(r, 'Unit', 'Plant') !== unit) return false;
-  if (status && getField(r, 'Customs Cleared', 'Customs Status') !== status) return false;
-  if (port && getField(r, 'Port Of Loading', 'POL') !== port) return false;
-  if (origin && getField(r, 'Country Of Origin', 'COO') !== origin) return false;
-  if (mode && getField(r, 'Mode') !== mode) return false;
-  if (month && recordMonth(r) !== month) return false;
-  if (search && !JSON.stringify(r).toLowerCase().includes(search.toLowerCase())) {
-    return false;
-  }
+  if (supplier.length && !supplier.includes(getField(r, 'Supplier'))) return false;
+  if (consol.length && !consol.includes(getField(r, 'Consol', 'Forwarder'))) return false;
+  if (unit.length && !unit.includes(getField(r, 'Unit', 'Plant'))) return false;
+  if (status.length && !status.includes(getField(r, 'Customs Cleared', 'Customs Status'))) return false;
+  if (port.length && !port.includes(getField(r, 'Port Of Loading', 'POL'))) return false;
+  if (origin.length && !origin.includes(getField(r, 'Country Of Origin', 'COO'))) return false;
+  if (lclFcl.length && !lclFcl.includes(getField(r, 'LCL/FCL', 'Load Type'))) return false;
+  if (month.length && !month.includes(recordMonth(r))) return false;
+  if (search && !JSON.stringify(r).toLowerCase().includes(search.toLowerCase())) return false;
   return true;
 }
 
 export function filterRecords(arr, filters) {
   if (!arr?.length) return [];
   return arr.filter((r) => matchesDashboardFilters(r, filters));
-}
-
-export function emptyFilters() {
-  return {
-    supplier: '',
-    consol: '',
-    unit: '',
-    status: '',
-    port: '',
-    origin: '',
-    mode: '',
-    month: '',
-    search: '',
-  };
 }
 
 /** Resolve records for a chart segment click */
@@ -77,9 +81,7 @@ export function recordsForChartClick({ chartId, label, fullLabel }, activeData, 
       return {
         type: 'delivered',
         title: `Forwarder: ${key}`,
-        records: deliveredData.filter(
-          (r) => getField(r, 'Consol', 'Forwarder') === key
-        ),
+        records: deliveredData.filter((r) => getField(r, 'Consol', 'Forwarder') === key),
       };
     case 'suppliers':
       return {
@@ -126,9 +128,7 @@ export function recordsForChartClick({ chartId, label, fullLabel }, activeData, 
       return {
         type: 'delivered',
         title: `Port: ${key}`,
-        records: deliveredData.filter(
-          (r) => getField(r, 'Port Of Loading', 'POL') === key
-        ),
+        records: deliveredData.filter((r) => getField(r, 'Port Of Loading', 'POL') === key),
       };
     default:
       return { records: [], type: 'delivered', title: 'Records' };

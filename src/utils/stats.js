@@ -1,4 +1,5 @@
 import { getField } from './format';
+import { hasUsefulValue } from './fields';
 
 export function computeStats(active, delivered, pendingCnt) {
   const s = {};
@@ -18,7 +19,6 @@ export function computeStats(active, delivered, pendingCnt) {
     return isNaN(n) ? 0 : n;
   };
 
-  s.freight = delivered.reduce((a, r) => a + toNum(getField(r, 'FRT', 'Freight')), 0);
   s.pkgs = delivered.reduce(
     (a, r) => a + toNum(getField(r, 'No Of Pkgs', 'Packages', 'Pkgs')),
     0
@@ -28,11 +28,78 @@ export function computeStats(active, delivered, pendingCnt) {
     0
   );
   s.suppliers = new Set(
-    delivered.map((r) => getField(r, 'Supplier')).filter(Boolean)
+    [...active, ...delivered].map((r) => getField(r, 'Supplier')).filter(Boolean)
   ).size;
 
+  // --- Air vs Sea ---
+  const allRows = [...active, ...delivered];
+  let airCount = 0, seaCount = 0;
+  allRows.forEach((r) => {
+    const jn = String(getField(r, 'Job No ', 'Job No') || '');
+    if (/^AIC/i.test(jn)) airCount++;
+    else if (/^SIC/i.test(jn)) seaCount++;
+  });
+  s.airVsSea = { air: airCount, sea: seaCount };
+
+  // --- Duty not paid (OOC Date empty) ---
+  s.dutyNotPaid = allRows.filter((r) => {
+    const ooc = getField(r, 'OOC DATE', 'OOC Date', 'Customs Cleared');
+    return !hasUsefulValue(ooc);
+  }).length;
+
+  // --- BE Filed but OOC not given > 2 days (active shipments only) ---
+  const today = new Date();
+  s.beFiledNoOoc = active.filter((r) => {
+    const beDate = getField(r, 'B/E Date', 'BE Date');
+    const ooc = getField(r, 'OOC DATE', 'OOC Date', 'Customs Cleared');
+    if (!hasUsefulValue(beDate) || hasUsefulValue(ooc)) return false;
+    const bd = new Date(beDate);
+    if (isNaN(bd)) return false;
+    return (today - bd) / 86400000 >= 2;
+  }).length;
+
+  // --- Total Duty (CFS Cost) ---
+  s.totalDuty = allRows.reduce(
+    (a, r) => a + toNum(getField(r, 'Duty Amount', 'Duty')),
+    0
+  );
+
+  // --- ETA Today / This Week / 14-day distribution ---
+  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+  const weekEnd = new Date(todayStart); weekEnd.setDate(todayStart.getDate() + 7);
+
+  const getEtaDate = (r) => {
+    const v = getField(r, 'Eta Maa', 'ETA MAA');
+    if (!v) return null;
+    const d = new Date(v); d.setHours(0, 0, 0, 0);
+    return isNaN(d) ? null : d;
+  };
+
+  s.etaToday = active.filter((r) => {
+    const d = getEtaDate(r);
+    return d && d.getTime() === todayStart.getTime();
+  }).length;
+
+  s.etaThisWeek = active.filter((r) => {
+    const d = getEtaDate(r);
+    return d && d >= todayStart && d < weekEnd;
+  }).length;
+
+  const etaDayLabels = Array.from({ length: 14 }, (_, i) => {
+    const d = new Date(todayStart); d.setDate(d.getDate() + i);
+    return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+  });
+  const etaDayCounts = new Array(14).fill(0);
+  active.forEach((r) => {
+    const d = getEtaDate(r);
+    if (!d) return;
+    const diff = Math.round((d - todayStart) / 86400000);
+    if (diff >= 0 && diff < 14) etaDayCounts[diff]++;
+  });
+  s.etaChart = { labels: etaDayLabels, data: etaDayCounts };
+
+  // --- Monthly delivery trend ---
   const mMap = {};
-  const mFrt = {};
   delivered.forEach((r) => {
     const dv = getField(r, 'Wabco Delevered Date', 'Wabco Delivered Date', 'Date');
     if (!dv) return;
@@ -40,11 +107,9 @@ export function computeStats(active, delivered, pendingCnt) {
     if (isNaN(dt)) return;
     const m = dt.toLocaleString('en-US', { month: 'short', year: 'numeric' });
     mMap[m] = (mMap[m] || 0) + 1;
-    mFrt[m] = (mFrt[m] || 0) + toNum(getField(r, 'FRT', 'Freight'));
   });
   const ms = Object.keys(mMap).sort((a, b) => new Date(a) - new Date(b));
   s.monthly = { labels: ms, data: ms.map((m) => mMap[m]) };
-  s.mFreight = { labels: ms, data: ms.map((m) => Math.round(mFrt[m] || 0)) };
 
   const agg = (arr, fn, top = 8) => {
     const m = {};
@@ -67,6 +132,37 @@ export function computeStats(active, delivered, pendingCnt) {
   );
   s.customs = agg(active, (r) => getField(r, 'Customs Cleared', 'Customs Status'), 8);
   s.ports = agg(delivered, (r) => getField(r, 'Port Of Loading', 'POL'), 8);
+
+  // --- Top suppliers by invoice value ---
+  const supValMap = {};
+  allRows.forEach((r) => {
+    const sup = String(getField(r, 'Supplier') || '').trim().substring(0, 30);
+    if (!sup) return;
+    supValMap[sup] = (supValMap[sup] || 0) + toNum(getField(r, 'Invoice Rate', 'Inv Rate'));
+  });
+  const sortedSupVal = Object.entries(supValMap).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  s.suppliersByValue = {
+    labels: sortedSupVal.map((x) => x[0]),
+    data: sortedSupVal.map((x) => Math.round(x[1])),
+  };
+
+  // --- Estimate (Invoice Rate) vs Actual (ASS. VALUE) by month ---
+  const estMap = {}, actMap = {};
+  allRows.forEach((r) => {
+    const d = getField(r, 'Date');
+    if (!d) return;
+    const dt = new Date(d);
+    if (isNaN(dt)) return;
+    const m = dt.toLocaleString('en-US', { month: 'short', year: 'numeric' });
+    estMap[m] = (estMap[m] || 0) + toNum(getField(r, 'Invoice Rate', 'Inv Rate'));
+    actMap[m] = (actMap[m] || 0) + toNum(getField(r, 'ASS. VALUE', 'Assessable Value'));
+  });
+  const evaMs = Object.keys(estMap).sort((a, b) => new Date(a) - new Date(b));
+  s.estimateVsActual = {
+    labels: evaMs,
+    estimate: evaMs.map((m) => Math.round(estMap[m] || 0)),
+    actual: evaMs.map((m) => Math.round(actMap[m] || 0)),
+  };
 
   return s;
 }

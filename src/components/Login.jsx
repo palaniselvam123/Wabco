@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import ZFLogo from './ZFLogo';
 
 const VALID = [
   { user: 'admin', pass: 'wabco2026' },
@@ -27,8 +28,10 @@ export default function Login({ onLogin }) {
     <div id="loginPage">
       <div className="login-left">
         <div className="login-badge">
-          <div className="login-badge-icon">📦</div>
-          <span>WABCO INDIA LIMITED — AIR FREIGHT OPERATIONS</span>
+          <div className="login-badge-icon">
+            <ZFLogo size={22} color="#1F5FAE" title="ZF India" />
+          </div>
+          <span>ZF INDIA — AIR &amp; SEA FREIGHT OPERATIONS</span>
         </div>
         <h1 className="login-hero">
           Logistics
@@ -53,8 +56,8 @@ export default function Login({ onLogin }) {
           </div>
           <div className="lst-div" />
           <div>
-            <div className="lst-val">₹1.94Cr</div>
-            <div className="lst-lbl">Total Freight Value</div>
+            <div className="lst-val">₹6.8L</div>
+            <div className="lst-lbl">Total Duty Value</div>
           </div>
           <div className="lst-div" />
           <div>

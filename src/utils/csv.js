@@ -24,7 +24,7 @@ export function exportCSV(data, type) {
   });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `WABCO_${type}_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.download = `ZF_India_${type}_${new Date().toISOString().slice(0, 10)}.csv`;
   a.click();
   URL.revokeObjectURL(a.href);
 }

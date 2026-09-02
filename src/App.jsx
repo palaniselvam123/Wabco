@@ -8,6 +8,8 @@ import DeliveredShipments from './components/DeliveredShipments';
 import { DEF_ACTIVE, DEF_DELIVERED } from './data/defaults';
 import { readExcelFile } from './utils/excel';
 import { computeStats } from './utils/stats';
+import { loadShipmentData, saveShipmentData } from './utils/storage';
+import { mergeShipmentData } from './utils/merge';
 
 const INITIAL_STATS = computeStats(DEF_ACTIVE, DEF_DELIVERED, 20);
 
@@ -15,6 +17,7 @@ export default function App() {
   const [authed, setAuthed] = useState(false);
   const [page, setPage] = useState('dashboard');
   const [loading, setLoading] = useState(false);
+  const [booting, setBooting] = useState(true);
   const [uploadBanner, setUploadBanner] = useState('');
   const [activeData, setActiveData] = useState(DEF_ACTIVE);
   const [deliveredData, setDeliveredData] = useState(DEF_DELIVERED);
@@ -25,6 +28,27 @@ export default function App() {
     month: 'short',
     year: 'numeric',
   });
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const saved = await loadShipmentData();
+      if (cancelled) return;
+      if (saved) {
+        setActiveData(saved.activeData);
+        setDeliveredData(saved.deliveredData);
+        setStats(computeStats(saved.activeData, saved.deliveredData));
+        const label = saved.fileName ? `"${saved.fileName}"` : 'Previous upload';
+        setUploadBanner(
+          `${label} restored — ${saved.activeData.length} active, ${saved.deliveredData.length} delivered.`
+        );
+      }
+      setBooting(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!uploadBanner) return;
@@ -49,11 +73,39 @@ export default function App() {
 
     setLoading(true);
     try {
-      const result = await readExcelFile(file);
-      setActiveData(result.activeData);
-      setDeliveredData(result.deliveredData);
-      setStats(result.stats);
-      setUploadBanner(result.message);
+      const incoming = await readExcelFile(file);
+      // Merge into current state (already in sync with Netlify Blobs)
+      const merged = mergeShipmentData(
+        { activeData, deliveredData },
+        incoming
+      );
+      const mergedStats = computeStats(merged.activeData, merged.deliveredData);
+
+      setActiveData(merged.activeData);
+      setDeliveredData(merged.deliveredData);
+      setStats(mergedStats);
+
+      const { newActive, updatedActive, newDelivered, updatedDelivered, movedToDelivered } = merged.summary;
+      const parts = [];
+      if (newActive) parts.push(`${newActive} new active`);
+      if (updatedActive) parts.push(`${updatedActive} active updated`);
+      if (newDelivered) parts.push(`${newDelivered} new delivered`);
+      if (updatedDelivered) parts.push(`${updatedDelivered} delivered updated`);
+      if (movedToDelivered) parts.push(`${movedToDelivered} moved active→delivered`);
+      const summary = parts.length ? parts.join(' · ') : 'no changes detected';
+      setUploadBanner(
+        `"${file.name}" merged — ${summary}. Total: ${merged.activeData.length} active, ${merged.deliveredData.length} delivered.`
+      );
+
+      try {
+        await saveShipmentData({
+          activeData: merged.activeData,
+          deliveredData: merged.deliveredData,
+          fileName: file.name,
+        });
+      } catch (persistErr) {
+        console.warn('Could not persist upload:', persistErr);
+      }
     } catch (err) {
       alert(
         'Error reading file: ' +
@@ -71,9 +123,9 @@ export default function App() {
 
   return (
     <>
-      <LoadingOverlay visible={loading} />
+      <LoadingOverlay visible={loading || booting} />
       <Navbar page={page} onNavigate={handleNavigate} onLogout={handleLogout} />
-      {page === 'dashboard' && (
+      {!booting && page === 'dashboard' && (
         <Dashboard
           stats={stats}
           activeData={activeData}
@@ -84,10 +136,10 @@ export default function App() {
           onNavigate={handleNavigate}
         />
       )}
-      {page === 'details' && (
+      {!booting && page === 'details' && (
         <ActiveShipments activeData={activeData} onNavigate={handleNavigate} />
       )}
-      {page === 'delivered' && (
+      {!booting && page === 'delivered' && (
         <DeliveredShipments
           deliveredData={deliveredData}
           onNavigate={handleNavigate}

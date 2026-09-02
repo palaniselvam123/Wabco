@@ -1,3 +1,5 @@
+import ZFLogo from './ZFLogo';
+
 export default function Navbar({ page, onNavigate, onLogout }) {
   const navDate = new Date().toLocaleDateString('en-IN', {
     weekday: 'short',
@@ -9,8 +11,10 @@ export default function Navbar({ page, onNavigate, onLogout }) {
   return (
     <nav id="navbar">
       <div className="nav-logo">
-        <div className="nav-logo-icon">📦</div>
-        WABCO <em>Logistics</em>
+        <div className="nav-logo-icon">
+          <ZFLogo size={23} color="#1F5FAE" title="ZF India" />
+        </div>
+        ZF <em>India</em>
       </div>
       <div className="nav-sep" />
       <div className="nav-links">
