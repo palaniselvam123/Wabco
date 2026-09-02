@@ -104,7 +104,7 @@ export default function Login({ onLogin }) {
             <div className="login-err">Invalid credentials. Please try again.</div>
           )}
           <div className="login-hint">
-            Demo access: <code>admin</code> / <code>wabco2026</code>
+            Demo access: <code>admin</code> / <code></code>
           </div>
         </form>
       </div>
