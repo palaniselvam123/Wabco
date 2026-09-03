@@ -1,6 +1,45 @@
 import { getField } from './format';
 import { hasUsefulValue } from './fields';
 
+/**
+ * Air or Sea for a shipment row.
+ *
+ * The Job No prefix (AIC / SIC) is the primary signal, but continuation rows
+ * often carry a blank or "-" Job No. Those fall back to documents that only
+ * exist for one mode: a vessel name, MBL or LCL/FCL means sea; an air waybill
+ * or flight number means air.
+ */
+export function transportMode(r) {
+  const jn = String(getField(r, 'Job No ', 'Job No') || '');
+  if (/^AIC/i.test(jn)) return 'air';
+  if (/^SIC/i.test(jn)) return 'sea';
+
+  if (
+    hasUsefulValue(getField(r, 'VESSEL NAME', 'Vessel Name')) ||
+    hasUsefulValue(getField(r, 'LCL/FCL', 'Load Type')) ||
+    hasUsefulValue(getField(r, 'MBL NO', 'MBL No', 'MBL/HBL'))
+  ) {
+    return 'sea';
+  }
+  if (
+    hasUsefulValue(getField(r, 'MAWB No.', 'MAWB No', 'MAWB')) ||
+    hasUsefulValue(getField(r, 'Flight No', 'Flight'))
+  ) {
+    return 'air';
+  }
+
+  // Continuation rows of a multi-part shipment carry none of the transport
+  // documents — those sit on the parent row only. Their status text usually
+  // still names the mode ("AWAITING FOR VESSEL ARRIVAL"), so read that last.
+  const status = `${getField(r, 'STATUS', 'Status') || ''} ${
+    getField(r, 'Remarks') || ''
+  }`;
+  if (/vessel|sailing|berth|port\s*of\s*discharge/i.test(status)) return 'sea';
+  if (/flight|airway|air\s*freight/i.test(status)) return 'air';
+
+  return 'other';
+}
+
 export function computeStats(active, delivered, pendingCnt) {
   const s = {};
   s.active = active.length;
@@ -44,9 +83,9 @@ export function computeStats(active, delivered, pendingCnt) {
   const allRows = [...active, ...delivered];
   let airCount = 0, seaCount = 0;
   allRows.forEach((r) => {
-    const jn = String(getField(r, 'Job No ', 'Job No') || '');
-    if (/^AIC/i.test(jn)) airCount++;
-    else if (/^SIC/i.test(jn)) seaCount++;
+    const mode = transportMode(r);
+    if (mode === 'air') airCount++;
+    else if (mode === 'sea') seaCount++;
   });
   s.airVsSea = { air: airCount, sea: seaCount };
 
@@ -103,10 +142,13 @@ export function computeStats(active, delivered, pendingCnt) {
     return d && d >= todayStart && d < weekEnd;
   }).length;
 
-  const etaDayLabels = Array.from({ length: 14 }, (_, i) => {
+  const etaDayDates = Array.from({ length: 14 }, (_, i) => {
     const d = new Date(todayStart); d.setDate(d.getDate() + i);
-    return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+    return d;
   });
+  const etaDayLabels = etaDayDates.map((d) =>
+    d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })
+  );
   const etaDayCounts = new Array(14).fill(0);
   active.forEach((r) => {
     const d = getEtaDate(r);
@@ -114,10 +156,17 @@ export function computeStats(active, delivered, pendingCnt) {
     const diff = Math.round((d - todayStart) / 86400000);
     if (diff >= 0 && diff < 14) etaDayCounts[diff]++;
   });
-  s.etaChart = { labels: etaDayLabels, data: etaDayCounts };
+  // `dates` lets a clicked bar resolve back to an exact day for the drill-down.
+  s.etaChart = {
+    labels: etaDayLabels,
+    data: etaDayCounts,
+    dates: etaDayDates.map((d) => d.toISOString()),
+  };
 
   // Per-date ETA counts, keyed YYYY-MM-DD in local time, so the calendar
   // view can render any month rather than just the next fortnight.
+  // Split by transport mode so the calendar can show Air and Sea separately,
+  // the way a planner reads a wall calendar.
   const etaByDate = {};
   active.forEach((r) => {
     const d = getEtaDate(r);
@@ -125,7 +174,10 @@ export function computeStats(active, delivered, pendingCnt) {
     const key =
       `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-` +
       `${String(d.getDate()).padStart(2, '0')}`;
-    etaByDate[key] = (etaByDate[key] || 0) + 1;
+    const mode = transportMode(r);
+    if (!etaByDate[key]) etaByDate[key] = { total: 0, air: 0, sea: 0, other: 0 };
+    etaByDate[key].total += 1;
+    etaByDate[key][mode] += 1;
   });
   s.etaByDate = etaByDate;
 

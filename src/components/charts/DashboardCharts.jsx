@@ -336,7 +336,8 @@ export default function DashboardCharts({ stats, onChartClick, filterBar }) {
       <div className="charts-row">
         <EtaForecastCard stats={stats} onChartClick={onChartClick} filterBar={filterBar}>
           {(() => {
-            const etaData = stats.etaChart || { labels: [], data: [] };
+            const etaData = stats.etaChart || { labels: [], data: [], dates: [] };
+            const etaFullDates = etaData.dates || [];
             return (
               <Bar
                 data={{
@@ -354,6 +355,7 @@ export default function DashboardCharts({ stats, onChartClick, filterBar }) {
                   ],
                 }}
                 options={{
+                  ...clickOpts('etaDay', onChartClick, etaFullDates),
                   responsive: true,
                   maintainAspectRatio: false,
                   animation: { duration: 700 },
@@ -544,6 +546,7 @@ export default function DashboardCharts({ stats, onChartClick, filterBar }) {
               }],
             }}
             options={{
+                  ...clickOpts('suppliersValue', onChartClick, supsByVal.labels),
               indexAxis: 'y',
               responsive: true,
               maintainAspectRatio: false,
@@ -680,6 +683,7 @@ export default function DashboardCharts({ stats, onChartClick, filterBar }) {
               }],
             }}
             options={{
+                  ...clickOpts('airSea', onChartClick, ['Air', 'Sea']),
               responsive: true,
               maintainAspectRatio: false,
               cutout: '55%',
@@ -775,6 +779,7 @@ export default function DashboardCharts({ stats, onChartClick, filterBar }) {
               ],
             }}
             options={{
+                  ...clickOpts('cfsMonth', onChartClick, eva.labels),
               responsive: true,
               maintainAspectRatio: false,
               animation: { duration: 700 },

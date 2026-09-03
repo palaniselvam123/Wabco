@@ -1,4 +1,5 @@
 import { getField } from './format';
+import { transportMode } from './stats';
 
 export function uniqueValues(arr, fn) {
   return [...new Set(arr.map(fn).filter(Boolean))].sort();
@@ -130,6 +131,55 @@ export function recordsForChartClick({ chartId, label, fullLabel }, activeData, 
         title: `Port: ${key}`,
         records: deliveredData.filter((r) => getField(r, 'Port Of Loading', 'POL') === key),
       };
+    case 'suppliersValue':
+      // The invoice-value chart is built from active and delivered together,
+      // so the drill-down must span both to match the bar that was clicked.
+      return {
+        type: 'delivered',
+        title: `Supplier: ${key}`,
+        subtitle: 'All records for this supplier, by invoice value',
+        records: [...activeData, ...deliveredData].filter((r) => {
+          const sup = String(getField(r, 'Supplier') || '').trim();
+          const stripped = String(key).replace(/…$/, '');
+          return sup === key || sup.startsWith(stripped);
+        }),
+      };
+    case 'airSea': {
+      const wantsAir = /air/i.test(String(key));
+      return {
+        type: 'delivered',
+        title: `${wantsAir ? 'Air' : 'Sea'} Shipments`,
+        // Must use the same detection as the chart, or the drill-down count
+        // will not match the segment that was clicked.
+        records: [...activeData, ...deliveredData].filter(
+          (r) => transportMode(r) === (wantsAir ? 'air' : 'sea')
+        ),
+      };
+    }
+    case 'cfsMonth':
+      return {
+        type: 'delivered',
+        title: `CFS charges — ${key}`,
+        records: [...activeData, ...deliveredData].filter((r) => recordMonth(r) === key),
+      };
+    case 'etaDay': {
+      // `key` is a display date; compare on the calendar day only.
+      const target = new Date(key);
+      if (isNaN(target)) return { records: [], type: 'active', title: 'Records' };
+      target.setHours(0, 0, 0, 0);
+      return {
+        type: 'active',
+        title: `Arriving ${target.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}`,
+        records: activeData.filter((r) => {
+          const v = getField(r, 'Eta Maa', 'ETA MAA', 'ETA');
+          if (!v) return false;
+          const d = new Date(v);
+          if (isNaN(d)) return false;
+          d.setHours(0, 0, 0, 0);
+          return d.getTime() === target.getTime();
+        }),
+      };
+    }
     default:
       return { records: [], type: 'delivered', title: 'Records' };
   }
