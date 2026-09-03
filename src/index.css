@@ -865,16 +865,17 @@ th,
 
 .charts-row {
   display: grid;
-  gap: 14px;
+  gap: 16px;
   margin-bottom: 20px;
+  align-items: stretch;
 }
 
 .cr2 {
-  grid-template-columns: 2fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .cr3 {
-  grid-template-columns: 2fr 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .chart-hint {
@@ -962,7 +963,8 @@ th,
 }
 
 .chart-card-tall {
-  min-height: 400px;
+  height: 404px;
+  min-height: 404px;
 }
 
 .chart-head {
@@ -2008,7 +2010,7 @@ tr.clickable-row:focus-visible td {
 
 @media (max-width: 1200px) {
   .cr3 {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -2028,7 +2030,8 @@ tr.clickable-row:focus-visible td {
 
   .chart-card,
   .chart-card-tall {
-    min-height: 340px;
+    height: 344px;
+    min-height: 344px;
   }
 
   .chart-body {
@@ -3136,6 +3139,7 @@ td[colspan] {
 /* A shorter card than the standard chart, since the ETA run is a
    single series and does not need the full height. */
 .chart-card-compact {
+  height: auto;
   min-height: 0;
 }
 .chart-card-compact .chart-body {
