@@ -125,10 +125,10 @@ export default function ActiveShipments({ activeData, onNavigate, canExport = fa
         ),
       },
       {
-        key: 'cfs',
-        label: 'CFS Name',
-        get: (r) => getField(r, 'CFS', 'CFS Name'),
-        render: (r, v) => <span className="trunc" style={{ maxWidth: 110, fontSize: 12 }}>{v || '—'}</span>,
+        key: 'remarks',
+        label: 'Remarks',
+        get: (r) => getField(r, 'Remarks'),
+        render: (r, v) => <span className="trunc" style={{ maxWidth: 150 }} title={v || ''}>{v || '—'}</span>,
       },
       { key: 'dutyAdv', label: 'Duty Advised', type: 'date', get: (r) => getField(r, 'Duty Advised ', 'Duty Advised'), render: (r, v) => fmtDate(v) },
       { key: 'dutyRec', label: 'Duty Received', type: 'date', get: (r) => getField(r, 'Duty Received'), render: (r, v) => fmtDate(v) },
@@ -140,11 +140,12 @@ export default function ActiveShipments({ activeData, onNavigate, canExport = fa
         render: (r, v) => <span className="badge b-blue">{v || '—'}</span>,
       },
       {
-        key: 'remarks',
-        label: 'Remarks',
-        get: (r) => getField(r, 'Remarks'),
-        render: (r, v) => <span className="trunc" style={{ maxWidth: 150 }} title={v || ''}>{v || '—'}</span>,
+        key: 'cfs',
+        label: 'CFS Name',
+        get: (r) => getField(r, 'CFS', 'CFS Name'),
+        render: (r, v) => <span className="trunc" style={{ maxWidth: 110, fontSize: 12 }}>{v || '—'}</span>,
       },
+      { key: 'freeDays', label: 'Free Days', get: (r) => getField(r, 'FREE DAYS COMPLTED', 'Free Days Completed', 'Free Days') },
     ],
     []
   );

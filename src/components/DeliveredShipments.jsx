@@ -114,19 +114,20 @@ export default function DeliveredShipments({ deliveredData, onNavigate, canExpor
           </span>
         ),
       },
-      { key: 'cfs', label: 'CFS Name', get: (r) => getField(r, 'CFS', 'CFS Name') },
-      {
-        key: 'plant',
-        label: 'Plant',
-        get: (r) => getField(r, 'Unit', 'Plant'),
-        render: (r, v) => <span className="badge b-blue">{v || '—'}</span>,
-      },
       {
         key: 'remarks',
         label: 'Remarks',
         get: (r) => getField(r, 'Remarks'),
         render: (r, v) => <span className="trunc" style={{ maxWidth: 160 }} title={v || ''}>{v || '—'}</span>,
       },
+      {
+        key: 'plant',
+        label: 'Plant',
+        get: (r) => getField(r, 'Unit', 'Plant'),
+        render: (r, v) => <span className="badge b-blue">{v || '—'}</span>,
+      },
+      { key: 'cfs', label: 'CFS Name', get: (r) => getField(r, 'CFS', 'CFS Name') },
+      { key: 'freeDays', label: 'Free Days', get: (r) => getField(r, 'FREE DAYS COMPLTED', 'Free Days Completed', 'Free Days') },
     ],
     []
   );

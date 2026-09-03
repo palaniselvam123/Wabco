@@ -38,6 +38,14 @@ const FIELD_META = [
     format: 'date',
   },
   {
+    keys: ['Invoice Currency', 'Currency'],
+    label: 'Invoice Currency',
+    emoji: '💱',
+    section: 'identity',
+  },
+  { keys: ['Unit Price'], label: 'Unit Price', emoji: '💲', section: 'identity', format: 'money' },
+  { keys: ['Invoice Rate', 'Inv Rate'], label: 'Invoice Rate', emoji: '📊', section: 'identity', format: 'money' },
+  {
     keys: ['PO No', 'PO No.', 'PO Number', 'Purchase Order'],
     label: 'PO No.',
     emoji: '📋',
@@ -178,7 +186,7 @@ const FIELD_META = [
   },
   { keys: ['ASN', 'ASN Status', 'ASN No', 'ASN Number'], label: 'ASN', emoji: '📨', section: 'customs' },
   { keys: ['ASN Date'], label: 'ASN Date', emoji: '📆', section: 'customs', format: 'date' },
-  { keys: ['STATUS', 'Status'], label: 'Status', emoji: '🏷️', section: 'customs' },
+  { keys: ['STATUS', 'Status'], label: 'Status Remark', emoji: '🏷️', section: 'customs' },
   { keys: ['Delivery Place', 'Delivery Location'], label: 'Delivery Place', emoji: '📍', section: 'customs' },
   {
     keys: ['Remarks', 'Remark', 'Comments'],
@@ -188,14 +196,6 @@ const FIELD_META = [
     full: true,
   },
 
-  {
-    keys: ['Invoice Currency', 'Currency'],
-    label: 'Invoice Currency',
-    emoji: '💱',
-    section: 'cost',
-  },
-  { keys: ['Unit Price'], label: 'Unit Price', emoji: '💲', section: 'cost', format: 'money' },
-  { keys: ['Invoice Rate', 'Inv Rate'], label: 'Invoice Rate', emoji: '📊', section: 'cost', format: 'money' },
   { keys: ['Exchange Rate', 'FX Rate'], label: 'Exchange Rate', emoji: '💱', section: 'cost', format: 'number' },
   {
     keys: ['Total Amount In Inr', 'Total INR'],

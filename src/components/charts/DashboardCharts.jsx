@@ -271,6 +271,58 @@ export default function DashboardCharts({ stats, onChartClick }) {
 
   return (
     <>
+      <div className="charts-row">
+        <ChartCard
+          title="ETA Arrival Forecast"
+          sub="Active shipments arriving per day — next 14 days"
+          badge="Active"
+          tall
+        >
+          {(() => {
+            const etaData = stats.etaChart || { labels: [], data: [] };
+            return (
+              <Bar
+                data={{
+                  labels: etaData.labels,
+                  datasets: [
+                    {
+                      label: 'Shipments ETA',
+                      data: etaData.data,
+                      backgroundColor: etaData.data.map((_, i) =>
+                        i === 0 ? 'rgba(240,124,44,.9)' : 'rgba(59,130,246,.75)'
+                      ),
+                      borderRadius: 6,
+                      maxBarThickness: 40,
+                    },
+                  ],
+                }}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  animation: { duration: 700 },
+                  layout: { padding: { top: 24, right: 8, bottom: 4, left: 4 } },
+                  plugins: {
+                    legend: { display: false },
+                    datalabels: {
+                      anchor: 'end',
+                      align: 'top',
+                      offset: 2,
+                      color: '#1d4ed8',
+                      font: LABEL_FONT,
+                      formatter: (v) => (v ? v : ''),
+                    },
+                    tooltip: { ...TT, callbacks: { label: (ctx) => ` ETA Shipments: ${ctx.raw}` } },
+                  },
+                  scales: {
+                    x: { grid: { display: false }, ticks: { ...tick, font: { size: 11 }, maxRotation: 45 } },
+                    y: { grid: { color: '#e8eef5' }, ticks: { ...tick, stepSize: 1 }, beginAtZero: true, grace: '15%' },
+                  },
+                }}
+              />
+            );
+          })()}
+        </ChartCard>
+      </div>
       <div className="charts-row cr2">
         <ChartCard
           title="Monthly Delivery Trend"
@@ -603,7 +655,7 @@ export default function DashboardCharts({ stats, onChartClick }) {
       </div>
 
       <div className="charts-row cr2">
-        <ChartCard title="Top Suppliers by Invoice Value" sub="Cumulative invoice value INR — Top 8" badge="Top 8" tall>
+        <ChartCard title="Top Invoice Value" sub="Cumulative invoice value INR — Top 8" badge="Top 8" tall>
           <Bar
             data={{
               labels: supsByVal.labels.map((l) => shorten(l, 24)),
@@ -641,7 +693,7 @@ export default function DashboardCharts({ stats, onChartClick }) {
           />
         </ChartCard>
 
-        <ChartCard title="Estimate vs Actual Cost" sub="Invoice Rate vs Assessable Value by month" tall>
+        <ChartCard title="Estimated CFS Cost vs Actual CFS Cost" sub="Approximate vs final CFS charges by month" tall>
           <Bar
             data={{
               labels: eva.labels,
@@ -684,58 +736,6 @@ export default function DashboardCharts({ stats, onChartClick }) {
         </ChartCard>
       </div>
 
-      <div className="charts-row">
-        <ChartCard
-          title="ETA Arrival Forecast"
-          sub="Active shipments arriving per day — next 14 days"
-          badge="Active"
-          tall
-        >
-          {(() => {
-            const etaData = stats.etaChart || { labels: [], data: [] };
-            return (
-              <Bar
-                data={{
-                  labels: etaData.labels,
-                  datasets: [
-                    {
-                      label: 'Shipments ETA',
-                      data: etaData.data,
-                      backgroundColor: etaData.data.map((_, i) =>
-                        i === 0 ? 'rgba(240,124,44,.9)' : 'rgba(59,130,246,.75)'
-                      ),
-                      borderRadius: 6,
-                      maxBarThickness: 40,
-                    },
-                  ],
-                }}
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  animation: { duration: 700 },
-                  layout: { padding: { top: 24, right: 8, bottom: 4, left: 4 } },
-                  plugins: {
-                    legend: { display: false },
-                    datalabels: {
-                      anchor: 'end',
-                      align: 'top',
-                      offset: 2,
-                      color: '#1d4ed8',
-                      font: LABEL_FONT,
-                      formatter: (v) => (v ? v : ''),
-                    },
-                    tooltip: { ...TT, callbacks: { label: (ctx) => ` ETA Shipments: ${ctx.raw}` } },
-                  },
-                  scales: {
-                    x: { grid: { display: false }, ticks: { ...tick, font: { size: 11 }, maxRotation: 45 } },
-                    y: { grid: { color: '#e8eef5' }, ticks: { ...tick, stepSize: 1 }, beginAtZero: true, grace: '15%' },
-                  },
-                }}
-              />
-            );
-          })()}
-        </ChartCard>
-      </div>
     </>
   );
 }

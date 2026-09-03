@@ -5,7 +5,7 @@ import StatusBadge from './StatusBadge';
 import RecordDetail from './RecordDetail';
 import ChartRecordsPanel from './ChartRecordsPanel';
 import DashboardCharts from './charts/DashboardCharts';
-import { fmtCur, fmtN, fmtDate, getField, isOverdue } from '../utils/format';
+import { fmtCur, fmtDate, getField, isOverdue } from '../utils/format';
 import { computeStats } from '../utils/stats';
 import {
   emptyFilters,
@@ -83,7 +83,7 @@ export default function Dashboard({
     } else if (kind === 'duty') {
       setDrilldown({ type: 'active', title: 'Duty Pending', subtitle: 'Active shipments with Filter = DUTY', records: filteredActive.filter((r) => String(getField(r, 'Filter') || '').toUpperCase() === 'DUTY') });
     } else if (kind === 'cleared') {
-      setDrilldown({ type: 'active', title: 'Customs Cleared', subtitle: 'Active shipments with Filter = CLR', records: filteredActive.filter((r) => String(getField(r, 'Filter') || '').toUpperCase() === 'CLR') });
+      setDrilldown({ type: 'active', title: 'OOC Received', subtitle: 'Shipments with an OOC date recorded', records: filteredActive.filter((r) => { const ooc = getField(r, 'OOC DATE', 'OOC Date', 'Customs Cleared'); return ooc && String(ooc).trim() !== '' && String(ooc).trim() !== '-'; }) });
     } else if (kind === 'dutyNotPaid') {
       setDrilldown({ type: 'active', title: 'Duty Not Paid', subtitle: 'Shipments with no OOC Date recorded', records: filteredActive.filter((r) => { const ooc = getField(r, 'OOC DATE', 'OOC Date', 'Customs Cleared'); return !ooc || String(ooc).trim() === '' || String(ooc).trim() === '-'; }) });
     } else if (kind === 'beFiledNoOoc') {
@@ -222,7 +222,7 @@ export default function Dashboard({
           <KpiCard color="red" icon="⏳" label="Duty Pending" value={(stats.duty || 0).toLocaleString()} trend="▶ Click" trendType="down" sub="PCV issued" />
         </div>
         <div className="kpi-click" onClick={() => openKpiRecords('cleared')}>
-          <KpiCard color="blue" icon="🛃" label="Customs Cleared" value={(stats.cleared || 0).toLocaleString()} trend="▶ Click" trendType="up" sub="Awaiting delivery" />
+          <KpiCard color="blue" icon="🛃" label="OOC Received" value={(stats.cleared || 0).toLocaleString()} trend="▶ Click" trendType="up" sub={stats.lastOocDate ? `Latest OOC: ${fmtDate(stats.lastOocDate)}` : 'No OOC dates recorded'} />
         </div>
         <KpiCard color="pur" icon="⚠️" label="Long Pending" value={(stats.longPending || 0).toLocaleString()} trend="▼ Urgent" trendType="down" sub="Escalation needed" />
         <div className="kpi-click" onClick={() => openKpiRecords('dutyNotPaid')}>
@@ -232,11 +232,10 @@ export default function Dashboard({
 
       <div className="kpi-grid kpi-grid-sm" style={{ marginBottom: 20 }}>
         <KpiCard color="blue" label="Total Packages" value={(stats.pkgs || 0).toLocaleString('en-IN')} sub="Delivered FY" compact />
-        <KpiCard color="grn" label="Total Weight" value={fmtN(stats.weight || 0) + ' kg'} sub="Delivered FY" compact />
         <div className="kpi-click" onClick={() => openKpiRecords('beFiledNoOoc')}>
-          <KpiCard color="org" label="BE Filed, No OOC > 2 Days" value={(stats.beFiledNoOoc || 0).toLocaleString()} sub="Clearance overdue" compact />
+          <KpiCard color="org" label="Pending Delivery (After OOC > 2 Days)" value={(stats.beFiledNoOoc || 0).toLocaleString()} sub="Clearance overdue" compact />
         </div>
-        <KpiCard color="teal" label="Total Duty (CFS Cost)" value={fmtCur(stats.totalDuty || 0)} sub="INR — all records" compact />
+        <KpiCard color="teal" label="Total CFS Costs" value={fmtCur(stats.totalCfsCost || 0)} sub={`Pending ${fmtCur(stats.cfsCostPending || 0)} · Delivered ${fmtCur(stats.cfsCostDelivered || 0)}`} compact />
         <KpiCard color="pur" label="Active Suppliers" value={(stats.suppliers || 0).toLocaleString()} sub="Unique vendors" compact />
         <div className="kpi-click" onClick={() => openKpiRecords('etaToday')}>
           <KpiCard color="blue" label="Today ETA" value={(stats.etaToday || 0).toLocaleString()} sub="Arriving today" compact />

@@ -10,9 +10,18 @@ export function computeStats(active, delivered, pendingCnt) {
   s.duty = active.filter(
     (r) => String(getField(r, 'Filter', '') || '').toUpperCase() === 'DUTY'
   ).length;
-  s.cleared = active.filter(
-    (r) => String(getField(r, 'Filter', '') || '').toUpperCase() === 'CLR'
-  ).length;
+  // OOC Received — shipments where customs has released the goods,
+  // i.e. an OOC date exists on the record.
+  const oocRows = active.filter((r) =>
+    hasUsefulValue(getField(r, 'OOC DATE', 'OOC Date', 'Customs Cleared'))
+  );
+  s.cleared = oocRows.length;
+
+  // Most recent OOC date, shown beneath the count.
+  s.lastOocDate = oocRows
+    .map((r) => new Date(getField(r, 'OOC DATE', 'OOC Date', 'Customs Cleared')))
+    .filter((d) => !isNaN(d))
+    .sort((a, b) => b - a)[0] || null;
 
   const toNum = (v) => {
     const n = parseFloat(v);
@@ -58,11 +67,20 @@ export function computeStats(active, delivered, pendingCnt) {
     return (today - bd) / 86400000 >= 2;
   }).length;
 
-  // --- Total Duty (CFS Cost) ---
-  s.totalDuty = allRows.reduce(
-    (a, r) => a + toNum(getField(r, 'Duty Amount', 'Duty')),
-    0
-  );
+  // --- Total CFS Costs, over pending (active) and delivered alike ---
+  const cfsOf = (r) =>
+    toNum(
+      getField(
+        r,
+        'TOTAL CFS CHARGES APROXIMATELY',
+        'TOTAL CFS CHARGES APPROXIMATELY',
+        'Total Cfs Charges',
+        'TOTAL CFS CHARGES'
+      )
+    );
+  s.totalCfsCost = allRows.reduce((a, r) => a + cfsOf(r), 0);
+  s.cfsCostPending = active.reduce((a, r) => a + cfsOf(r), 0);
+  s.cfsCostDelivered = delivered.reduce((a, r) => a + cfsOf(r), 0);
 
   // --- ETA Today / This Week / 14-day distribution ---
   const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
@@ -154,8 +172,20 @@ export function computeStats(active, delivered, pendingCnt) {
     const dt = new Date(d);
     if (isNaN(dt)) return;
     const m = dt.toLocaleString('en-US', { month: 'short', year: 'numeric' });
-    estMap[m] = (estMap[m] || 0) + toNum(getField(r, 'Invoice Rate', 'Inv Rate'));
-    actMap[m] = (actMap[m] || 0) + toNum(getField(r, 'ASS. VALUE', 'Assessable Value'));
+    // Estimated = the approximate CFS charge; actual = the final total charged.
+    estMap[m] =
+      (estMap[m] || 0) +
+      toNum(getField(r, 'CFS CHARGES APPROXIMATELY', 'CFS CHARGES', 'Cfs Charges'));
+    actMap[m] =
+      (actMap[m] || 0) +
+      toNum(
+        getField(
+          r,
+          'TOTAL CFS CHARGES APROXIMATELY',
+          'TOTAL CFS CHARGES APPROXIMATELY',
+          'TOTAL CFS CHARGES'
+        )
+      );
   });
   const evaMs = Object.keys(estMap).sort((a, b) => new Date(a) - new Date(b));
   s.estimateVsActual = {

@@ -26,3 +26,6 @@ dist-ssr
 
 # Local Netlify folder
 .netlify
+
+# Blob store exports — contain password hashes and commercial data
+blob-export/
