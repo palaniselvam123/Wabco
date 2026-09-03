@@ -907,7 +907,7 @@ th,
 .chart-records {
   position: fixed;
   inset: 0;
-  z-index: 480;
+  z-index: 11500;
   background:
     radial-gradient(circle at top right, rgba(240, 124, 44, 0.08), transparent 32%),
     linear-gradient(180deg, #e8eef8 0%, #f0f4fa 45%, #f7f9fc 100%);
@@ -1433,7 +1433,7 @@ tr.clickable-row:focus-visible td {
 .record-detail {
   position: fixed;
   inset: 0;
-  z-index: 500;
+  z-index: 12000;
   background:
     radial-gradient(circle at top right, rgba(240, 124, 44, 0.08), transparent 32%),
     radial-gradient(circle at 12% 18%, rgba(59, 130, 246, 0.08), transparent 28%),
@@ -3173,28 +3173,31 @@ td[colspan] {
   box-shadow: 0 1px 3px rgba(11, 27, 53, 0.14);
 }
 
-/* ── Calendar ── */
+/* ── Calendar ──
+   Laid out as a real month grid: the date sits in the corner like a wall
+   calendar, and the arrival count is a distinct badge below it so the two
+   numbers can never be confused for one another. */
 .eta-cal {
   display: flex;
   flex-direction: column;
   height: 100%;
-  min-height: 210px;
+  min-height: 300px;
 }
 
 .eta-cal-head {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 .eta-cal-nav {
-  width: 26px;
-  height: 26px;
-  border-radius: 7px;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
   border: 1px solid var(--border);
   background: #fff;
   color: var(--muted);
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1;
   cursor: pointer;
   transition: all 0.2s var(--ease);
@@ -3202,114 +3205,154 @@ td[colspan] {
 .eta-cal-nav:hover {
   border-color: var(--accent);
   color: var(--accent-deep);
+  background: #fffaf5;
 }
 .eta-cal-month {
   display: flex;
   align-items: baseline;
-  gap: 9px;
+  gap: 10px;
   flex: 1;
 }
 .eta-cal-month strong {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--primary);
+  letter-spacing: -0.2px;
 }
 .eta-cal-month span {
-  font-size: 11px;
+  font-size: 11.5px;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
 .eta-cal-today {
   border: 1px solid var(--border);
   background: #fff;
-  border-radius: 7px;
+  border-radius: 8px;
   font-family: var(--font);
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--muted);
-  padding: 5px 10px;
+  padding: 6px 12px;
   cursor: pointer;
   transition: all 0.2s var(--ease);
 }
 .eta-cal-today:hover {
   border-color: var(--accent);
   color: var(--accent-deep);
+  background: #fffaf5;
 }
 
 .eta-cal-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
+  gap: 5px;
   flex: 1;
+  align-content: stretch;
 }
 
 .eta-cal-dow {
   font-size: 9.5px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.6px;
+  letter-spacing: 0.8px;
   color: var(--light);
   text-align: center;
-  padding-bottom: 2px;
+  padding-bottom: 4px;
 }
 
 .eta-cal-day {
   position: relative;
-  min-height: 34px;
+  min-height: 52px;
   border: 1px solid var(--border-soft);
-  border-radius: 7px;
+  border-radius: 9px;
   background: #fff;
   font-family: var(--font);
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1px;
-  padding: 2px;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 5px 6px;
   cursor: default;
+  overflow: hidden;
   transition: all 0.2s var(--ease);
 }
 .eta-cal-day.is-pad {
   border-color: transparent;
-  background: none;
+  background: repeating-linear-gradient(
+    -45deg, #fafbfd, #fafbfd 4px, transparent 4px, transparent 9px
+  );
 }
 
+/* The date — always the same size and corner position, like a wall calendar */
 .eta-cal-num {
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
+  line-height: 1;
 }
 
-/* Days with arrivals tint with the blue used by the ETA bars, scaled by
-   how busy that day is relative to the busiest day on screen. */
+/* The arrival count — a labelled badge, deliberately unlike the date */
+.eta-cal-count {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  margin-top: auto;
+  align-self: stretch;
+  justify-content: center;
+  padding: 2px 5px;
+  border-radius: 20px;
+  background: var(--primary);
+  color: #fff;
+}
+.eta-cal-count strong {
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.eta-cal-count em {
+  font-style: normal;
+  font-size: 8.5px;
+  font-weight: 600;
+  opacity: 0.72;
+  letter-spacing: 0.2px;
+}
+
+/* Days with arrivals tint by volume relative to the busiest day in view */
 .eta-cal-day.has-eta {
   cursor: pointer;
-  border-color: transparent;
-  background: rgba(37, 99, 235, calc(0.10 + var(--eta-weight, 0) * 0.55));
+  border-color: rgba(37, 99, 235, 0.28);
+  background: rgba(37, 99, 235, calc(0.05 + var(--eta-weight, 0) * 0.22));
 }
 .eta-cal-day.has-eta .eta-cal-num {
   color: #0b2f6b;
+  font-weight: 700;
 }
 .eta-cal-day.has-eta:hover {
   transform: translateY(-1px);
-  box-shadow: 0 3px 10px rgba(37, 99, 235, 0.3);
-}
-.eta-cal-count {
-  font-size: 11px;
-  font-weight: 800;
-  color: #0b2f6b;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
+  border-color: var(--info);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.24);
 }
 
 .eta-cal-day.is-today {
   border: 2px solid var(--accent);
-  box-shadow: 0 0 0 2px rgba(240, 124, 44, 0.16);
+  padding: 4px 5px;
+}
+.eta-cal-day.is-today .eta-cal-num {
+  color: var(--accent-deep);
+  font-weight: 800;
+}
+
+/* A calendar needs more room than the bar run, so it overrides the
+   compact card's height cap. */
+.chart-body:has(.eta-cal) {
+  max-height: none;
+  min-height: 320px;
 }
 
 @media (max-width: 720px) {
-  .eta-cal-day { min-height: 28px; }
-  .eta-cal-count { font-size: 10px; }
+  .eta-cal-day { min-height: 44px; padding: 4px; }
+  .eta-cal-count em { display: none; }
   .view-toggle button { padding: 5px 8px; font-size: 10px; }
 }

@@ -19,6 +19,7 @@ import {
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { Chart, Bar, Doughnut, Line } from 'react-chartjs-2';
 import { DEF } from '../../data/defaults';
+import { lockScroll, unlockScroll } from '../../utils/scrollLock';
 
 ChartJS.register(
   CategoryScale,
@@ -100,7 +101,7 @@ function fmtCompactInr(v) {
   return '₹' + Math.round(n).toLocaleString('en-IN');
 }
 
-function ChartCard({ title, sub, badge, tall, compact, actions, children }) {
+function ChartCard({ title, sub, badge, tall, compact, actions, filterBar, children }) {
   const [fs, setFs] = useState(false);
 
   // Esc closes fullscreen; lock background scroll while open
@@ -108,11 +109,10 @@ function ChartCard({ title, sub, badge, tall, compact, actions, children }) {
     if (!fs) return;
     const onKey = (e) => e.key === 'Escape' && setFs(false);
     document.addEventListener('keydown', onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    lockScroll();
     return () => {
       document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = prev;
+      unlockScroll();
     };
   }, [fs]);
 
@@ -218,6 +218,9 @@ function ChartCard({ title, sub, badge, tall, compact, actions, children }) {
                 </button>
               </div>
             </div>
+            {filterBar && (
+              <div className="filter-bar chart-fs-filters">{filterBar}</div>
+            )}
             <div style={{ flex: 1, minHeight: 0, padding: '22px 28px 28px' }}>
               <div style={{ width: '100%', height: '100%', position: 'relative' }}>{children}</div>
             </div>
@@ -262,7 +265,7 @@ function fmtCompactInrAxis(v) {
  * ETA forecast with two readings of the same data: the 14-day bar run, and a
  * month calendar that makes day-of-week and month-end clustering visible.
  */
-function EtaForecastCard({ stats, onChartClick, children }) {
+function EtaForecastCard({ stats, onChartClick, filterBar, children }) {
   const [view, setView] = useState('chart');
 
   const toggle = (
@@ -294,7 +297,7 @@ function EtaForecastCard({ stats, onChartClick, children }) {
   };
 
   return (
-    <ChartCard
+    <ChartCard filterBar={filterBar}
       title="ETA Arrival Forecast"
       sub={
         view === 'chart'
@@ -314,7 +317,7 @@ function EtaForecastCard({ stats, onChartClick, children }) {
   );
 }
 
-export default function DashboardCharts({ stats, onChartClick }) {
+export default function DashboardCharts({ stats, onChartClick, filterBar }) {
   const monthly = stats.monthly || DEF.monthly;
   const consol = stats.consol || DEF.consol;
   const units = stats.units || DEF.units;
@@ -331,7 +334,7 @@ export default function DashboardCharts({ stats, onChartClick }) {
   return (
     <>
       <div className="charts-row">
-        <EtaForecastCard stats={stats} onChartClick={onChartClick}>
+        <EtaForecastCard stats={stats} onChartClick={onChartClick} filterBar={filterBar}>
           {(() => {
             const etaData = stats.etaChart || { labels: [], data: [] };
             return (
@@ -378,7 +381,7 @@ export default function DashboardCharts({ stats, onChartClick }) {
         </EtaForecastCard>
       </div>
       <div className="charts-row cr2">
-        <ChartCard
+        <ChartCard filterBar={filterBar}
           title="Monthly Delivery Trend"
           sub="Completed shipments by month"
           badge="FY 2026-27"
@@ -423,7 +426,7 @@ export default function DashboardCharts({ stats, onChartClick }) {
           />
         </ChartCard>
 
-        <ChartCard title="Freight Forwarders" sub="Shipments by logistics partner" tall>
+        <ChartCard filterBar={filterBar} title="Freight Forwarders" sub="Shipments by logistics partner" tall>
           <Doughnut
             data={{
               labels: consol.labels,
@@ -467,7 +470,7 @@ export default function DashboardCharts({ stats, onChartClick }) {
       </div>
 
       <div className="charts-row cr2">
-        <ChartCard
+        <ChartCard filterBar={filterBar}
           title="Top Suppliers by Shipments"
           sub="Delivered shipments per vendor"
           badge="Top 8"
@@ -528,7 +531,7 @@ export default function DashboardCharts({ stats, onChartClick }) {
             }}
           />
         </ChartCard>
-        <ChartCard title="Top Invoice Value" sub="Cumulative invoice value INR — Top 8" badge="Top 8" tall>
+        <ChartCard filterBar={filterBar} title="Top Invoice Value" sub="Cumulative invoice value INR — Top 8" badge="Top 8" tall>
           <Bar
             data={{
               labels: supsByVal.labels.map((l) => shorten(l, 24)),
@@ -569,7 +572,7 @@ export default function DashboardCharts({ stats, onChartClick }) {
       </div>
 
       <div className="charts-row cr2">
-        <ChartCard title="Plant Distribution" sub="Shipments by destination unit" tall>
+        <ChartCard filterBar={filterBar} title="Plant Distribution" sub="Shipments by destination unit" tall>
           <Doughnut
             data={{
               labels: units.labels,
@@ -611,7 +614,7 @@ export default function DashboardCharts({ stats, onChartClick }) {
           />
         </ChartCard>
 
-        <ChartCard title="Customs Pipeline" sub="Active shipment clearance stages" tall>
+        <ChartCard filterBar={filterBar} title="Customs Pipeline" sub="Active shipment clearance stages" tall>
           <Bar
             data={{
               labels: customs.labels,
@@ -664,7 +667,7 @@ export default function DashboardCharts({ stats, onChartClick }) {
       </div>
 
       <div className="charts-row cr2">
-        <ChartCard title="Air vs Sea Shipments" sub="Shipments split by transport mode" tall>
+        <ChartCard filterBar={filterBar} title="Air vs Sea Shipments" sub="Shipments split by transport mode" tall>
           <Doughnut
             data={{
               labels: ['Air (AIC)', 'Sea (SIC)'],
@@ -694,7 +697,7 @@ export default function DashboardCharts({ stats, onChartClick }) {
           />
         </ChartCard>
 
-        <ChartCard title="Ports of Loading" sub="Top origin airports & seaports" badge="Top 8" tall>
+        <ChartCard filterBar={filterBar} title="Ports of Loading" sub="Top origin airports & seaports" badge="Top 8" tall>
           <Bar
             data={{
               labels: ports.labels,
@@ -750,7 +753,7 @@ export default function DashboardCharts({ stats, onChartClick }) {
 
       <div className="charts-row">
 
-        <ChartCard title="Estimated CFS Cost vs Actual CFS Cost" sub="Approximate vs final CFS charges by month" tall>
+        <ChartCard filterBar={filterBar} title="Estimated CFS Cost vs Actual CFS Cost" sub="Approximate vs final CFS charges by month" tall>
           <Bar
             data={{
               labels: eva.labels,

@@ -1,6 +1,8 @@
 import { useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import StatusBadge from './StatusBadge';
 import { fmtDate, fmtMoney, isOverdue } from '../utils/format';
+import { lockScroll, unlockScroll } from '../utils/scrollLock';
 import {
   getRecordValue,
   hasUsefulValue,
@@ -385,10 +387,10 @@ export default function RecordDetail({ record, type = 'active', onClose }) {
     const onKey = (e) => {
       if (e.key === 'Escape') onClose();
     };
-    document.body.style.overflow = 'hidden';
+    lockScroll();
     window.addEventListener('keydown', onKey);
     return () => {
-      document.body.style.overflow = '';
+      unlockScroll();
       window.removeEventListener('keydown', onKey);
     };
   }, [onClose]);
@@ -449,7 +451,7 @@ export default function RecordDetail({ record, type = 'active', onClose }) {
           { emoji: '🏢', label: 'Plant', value: unit || '—' },
         ];
 
-  return (
+  return createPortal(
     <div className="record-detail" role="dialog" aria-modal="true">
       <div className="record-detail-bar">
         <button type="button" className="btn-sm btn-outline record-back" onClick={onClose}>
@@ -568,5 +570,7 @@ export default function RecordDetail({ record, type = 'active', onClose }) {
         </div>
       </div>
     </div>
+    ,
+    document.body
   );
 }

@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import StatusBadge from './StatusBadge';
 import RecordDetail from './RecordDetail';
 import { fmtDate, fmtMoney, getField, isOverdue } from '../utils/format';
 import { exportCSV } from '../utils/csv';
+import { lockScroll, unlockScroll } from '../utils/scrollLock';
 
 export default function ChartRecordsPanel({
   title,
@@ -18,15 +20,15 @@ export default function ChartRecordsPanel({
     const onKey = (e) => {
       if (e.key === 'Escape' && !selected) onClose();
     };
-    document.body.style.overflow = 'hidden';
+    lockScroll();
     window.addEventListener('keydown', onKey);
     return () => {
-      document.body.style.overflow = '';
+      unlockScroll();
       window.removeEventListener('keydown', onKey);
     };
   }, [onClose, selected]);
 
-  return (
+  return createPortal(
     <div className="chart-records" role="dialog" aria-modal="true">
       <div className="chart-records-bar">
         <button type="button" className="btn-sm btn-outline record-back" onClick={onClose}>
@@ -231,5 +233,7 @@ export default function ChartRecordsPanel({
         />
       )}
     </div>
+    ,
+    document.body
   );
 }

@@ -140,6 +140,43 @@ export default function Dashboard({
     );
   };
 
+  // Rendered twice: in the dashboard filter bar, and inside a chart's
+  // fullscreen view so a chart can be narrowed without leaving fullscreen.
+  const filterControls = (
+    <>
+        {[
+        { label: 'Supplier', key: 'supplier', opts: filterOptions.suppliers },
+        { label: 'Forwarder', key: 'consol', opts: filterOptions.consols },
+        { label: 'Plant', key: 'unit', opts: filterOptions.units },
+        { label: 'Customs', key: 'status', opts: filterOptions.statuses },
+        { label: 'Port', key: 'port', opts: filterOptions.ports },
+        { label: 'Origin', key: 'origin', opts: filterOptions.origins },
+        { label: 'LCL / FCL', key: 'lclFcl', opts: filterOptions.lclFcls },
+        { label: 'Month', key: 'month', opts: filterOptions.months },
+      ].map(({ label, key, opts }) => (
+        <div className="fg-inline" key={key}>
+          <label>{label}</label>
+          <MultiFilter
+            options={opts}
+            selected={filters[key] || []}
+            onChange={(v) => setFilter(key, v)}
+          />
+        </div>
+      ))}
+      <div className="fg-inline">
+        <label>Search</label>
+        <input
+          placeholder="Job / Part / Invoice…"
+          value={filters.search}
+          onChange={(e) => setFilter('search', e.target.value)}
+        />
+      </div>
+      <button className="btn-sm btn-outline" onClick={clearFilters}>
+        ✕ Clear
+      </button>
+    </>
+  );
+
   return (
     <div className="pg">
       <div className="pg-head">
@@ -175,36 +212,7 @@ export default function Dashboard({
       )}
 
       <div className="filter-bar dash-filter-bar">
-        {[
-          { label: 'Supplier', key: 'supplier', opts: filterOptions.suppliers },
-          { label: 'Forwarder', key: 'consol', opts: filterOptions.consols },
-          { label: 'Plant', key: 'unit', opts: filterOptions.units },
-          { label: 'Customs', key: 'status', opts: filterOptions.statuses },
-          { label: 'Port', key: 'port', opts: filterOptions.ports },
-          { label: 'Origin', key: 'origin', opts: filterOptions.origins },
-          { label: 'LCL / FCL', key: 'lclFcl', opts: filterOptions.lclFcls },
-          { label: 'Month', key: 'month', opts: filterOptions.months },
-        ].map(({ label, key, opts }) => (
-          <div className="fg-inline" key={key}>
-            <label>{label}</label>
-            <MultiFilter
-              options={opts}
-              selected={filters[key] || []}
-              onChange={(v) => setFilter(key, v)}
-            />
-          </div>
-        ))}
-        <div className="fg-inline">
-          <label>Search</label>
-          <input
-            placeholder="Job / Part / Invoice…"
-            value={filters.search}
-            onChange={(e) => setFilter('search', e.target.value)}
-          />
-        </div>
-        <button className="btn-sm btn-outline" onClick={clearFilters}>
-          ✕ Clear
-        </button>
+        {filterControls}
       </div>
 
       <div className="chart-hint">
@@ -245,7 +253,11 @@ export default function Dashboard({
         </div>
       </div>
 
-      <DashboardCharts stats={stats} onChartClick={handleChartClick} />
+      <DashboardCharts
+        stats={stats}
+        onChartClick={handleChartClick}
+        filterBar={filterControls}
+      />
 
       {/* ── Active Shipments mini table with sort + column filters ── */}
       <div className="table-card" ref={recordsRef}>

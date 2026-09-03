@@ -102,7 +102,12 @@ export default function EtaCalendar({ etaByDate = {}, onSelectDay }) {
               }
             >
               <span className="eta-cal-num">{cell.day}</span>
-              {cell.count > 0 && <span className="eta-cal-count">{cell.count}</span>}
+              {cell.count > 0 && (
+                <span className="eta-cal-count">
+                  <strong>{cell.count}</strong>
+                  <em>{cell.count === 1 ? 'shpmt' : 'shpmts'}</em>
+                </span>
+              )}
             </button>
           )
         )}
