@@ -3128,3 +3128,188 @@ td[colspan] {
   min-width: 165px;
 }
 .admin-event-actor { color: var(--muted); }
+
+/* ══════════════════════════════════════════════════════
+   ETA FORECAST — COMPACT CARD, VIEW TOGGLE, CALENDAR
+   ══════════════════════════════════════════════════════ */
+
+/* A shorter card than the standard chart, since the ETA run is a
+   single series and does not need the full height. */
+.chart-card-compact {
+  min-height: 0;
+}
+.chart-card-compact .chart-body {
+  min-height: 210px;
+  max-height: 260px;
+}
+
+/* ── Chart / Calendar switch ── */
+.view-toggle {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 8px;
+  background: #eef2f7;
+  border: 1px solid var(--border);
+}
+.view-toggle button {
+  border: none;
+  background: none;
+  font-family: var(--font);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 5px 11px;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.22s var(--ease);
+}
+.view-toggle button:hover {
+  color: var(--primary);
+}
+.view-toggle button.active {
+  background: #fff;
+  color: var(--primary);
+  box-shadow: 0 1px 3px rgba(11, 27, 53, 0.14);
+}
+
+/* ── Calendar ── */
+.eta-cal {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 210px;
+}
+
+.eta-cal-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.eta-cal-nav {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+}
+.eta-cal-nav:hover {
+  border-color: var(--accent);
+  color: var(--accent-deep);
+}
+.eta-cal-month {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  flex: 1;
+}
+.eta-cal-month strong {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary);
+}
+.eta-cal-month span {
+  font-size: 11px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.eta-cal-today {
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 7px;
+  font-family: var(--font);
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+}
+.eta-cal-today:hover {
+  border-color: var(--accent);
+  color: var(--accent-deep);
+}
+
+.eta-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  flex: 1;
+}
+
+.eta-cal-dow {
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--light);
+  text-align: center;
+  padding-bottom: 2px;
+}
+
+.eta-cal-day {
+  position: relative;
+  min-height: 34px;
+  border: 1px solid var(--border-soft);
+  border-radius: 7px;
+  background: #fff;
+  font-family: var(--font);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  padding: 2px;
+  cursor: default;
+  transition: all 0.2s var(--ease);
+}
+.eta-cal-day.is-pad {
+  border-color: transparent;
+  background: none;
+}
+
+.eta-cal-num {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Days with arrivals tint with the blue used by the ETA bars, scaled by
+   how busy that day is relative to the busiest day on screen. */
+.eta-cal-day.has-eta {
+  cursor: pointer;
+  border-color: transparent;
+  background: rgba(37, 99, 235, calc(0.10 + var(--eta-weight, 0) * 0.55));
+}
+.eta-cal-day.has-eta .eta-cal-num {
+  color: #0b2f6b;
+}
+.eta-cal-day.has-eta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(37, 99, 235, 0.3);
+}
+.eta-cal-count {
+  font-size: 11px;
+  font-weight: 800;
+  color: #0b2f6b;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.eta-cal-day.is-today {
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 0 2px rgba(240, 124, 44, 0.16);
+}
+
+@media (max-width: 720px) {
+  .eta-cal-day { min-height: 28px; }
+  .eta-cal-count { font-size: 10px; }
+  .view-toggle button { padding: 5px 8px; font-size: 10px; }
+}

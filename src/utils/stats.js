@@ -116,6 +116,19 @@ export function computeStats(active, delivered, pendingCnt) {
   });
   s.etaChart = { labels: etaDayLabels, data: etaDayCounts };
 
+  // Per-date ETA counts, keyed YYYY-MM-DD in local time, so the calendar
+  // view can render any month rather than just the next fortnight.
+  const etaByDate = {};
+  active.forEach((r) => {
+    const d = getEtaDate(r);
+    if (!d) return;
+    const key =
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-` +
+      `${String(d.getDate()).padStart(2, '0')}`;
+    etaByDate[key] = (etaByDate[key] || 0) + 1;
+  });
+  s.etaByDate = etaByDate;
+
   // --- Monthly delivery trend ---
   const mMap = {};
   delivered.forEach((r) => {

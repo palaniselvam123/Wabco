@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import EtaCalendar from './EtaCalendar';
 import { createPortal } from 'react-dom';
 import {
   Chart as ChartJS,
@@ -99,7 +100,7 @@ function fmtCompactInr(v) {
   return '₹' + Math.round(n).toLocaleString('en-IN');
 }
 
-function ChartCard({ title, sub, badge, tall, children }) {
+function ChartCard({ title, sub, badge, tall, compact, actions, children }) {
   const [fs, setFs] = useState(false);
 
   // Esc closes fullscreen; lock background scroll while open
@@ -117,13 +118,14 @@ function ChartCard({ title, sub, badge, tall, children }) {
 
   return (
     <>
-      <div className={`chart-card${tall ? ' chart-card-tall' : ''}`}>
+      <div className={`chart-card${tall ? ' chart-card-tall' : ''}${compact ? ' chart-card-compact' : ''}`}>
         <div className="chart-head">
           <div style={{ flex: 1, minWidth: 0 }}>
             <div className="chart-title">{title}</div>
             {sub && <div className="chart-sub">{sub}</div>}
           </div>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
+            {actions}
             {badge && <div className="chart-badge">{badge}</div>}
             <button
               onClick={() => setFs(true)}
@@ -255,6 +257,63 @@ function fmtCompactInrAxis(v) {
   return '₹' + Math.round(n).toLocaleString('en-IN');
 }
 
+
+/**
+ * ETA forecast with two readings of the same data: the 14-day bar run, and a
+ * month calendar that makes day-of-week and month-end clustering visible.
+ */
+function EtaForecastCard({ stats, onChartClick, children }) {
+  const [view, setView] = useState('chart');
+
+  const toggle = (
+    <div className="view-toggle" role="group" aria-label="ETA view">
+      <button
+        className={view === 'chart' ? 'active' : ''}
+        onClick={() => setView('chart')}
+        aria-pressed={view === 'chart'}
+      >
+        📊 Chart
+      </button>
+      <button
+        className={view === 'calendar' ? 'active' : ''}
+        onClick={() => setView('calendar')}
+        aria-pressed={view === 'calendar'}
+      >
+        🗓️ Calendar
+      </button>
+    </div>
+  );
+
+  const handleDay = (date, count) => {
+    if (!onChartClick) return;
+    onChartClick({
+      chartId: 'etaDay',
+      label: date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+      value: count,
+    });
+  };
+
+  return (
+    <ChartCard
+      title="ETA Arrival Forecast"
+      sub={
+        view === 'chart'
+          ? 'Active shipments arriving per day — next 14 days'
+          : 'Active shipments arriving per day — by month'
+      }
+      badge="Active"
+      compact
+      actions={toggle}
+    >
+      {view === 'chart' ? (
+        children
+      ) : (
+        <EtaCalendar etaByDate={stats.etaByDate || {}} onSelectDay={handleDay} />
+      )}
+    </ChartCard>
+  );
+}
+
 export default function DashboardCharts({ stats, onChartClick }) {
   const monthly = stats.monthly || DEF.monthly;
   const consol = stats.consol || DEF.consol;
@@ -272,12 +331,7 @@ export default function DashboardCharts({ stats, onChartClick }) {
   return (
     <>
       <div className="charts-row">
-        <ChartCard
-          title="ETA Arrival Forecast"
-          sub="Active shipments arriving per day — next 14 days"
-          badge="Active"
-          tall
-        >
+        <EtaForecastCard stats={stats} onChartClick={onChartClick}>
           {(() => {
             const etaData = stats.etaChart || { labels: [], data: [] };
             return (
@@ -321,7 +375,7 @@ export default function DashboardCharts({ stats, onChartClick }) {
               />
             );
           })()}
-        </ChartCard>
+        </EtaForecastCard>
       </div>
       <div className="charts-row cr2">
         <ChartCard
@@ -412,7 +466,7 @@ export default function DashboardCharts({ stats, onChartClick }) {
         </ChartCard>
       </div>
 
-      <div className="charts-row cr3">
+      <div className="charts-row cr2">
         <ChartCard
           title="Top Suppliers by Shipments"
           sub="Delivered shipments per vendor"
@@ -474,7 +528,47 @@ export default function DashboardCharts({ stats, onChartClick }) {
             }}
           />
         </ChartCard>
+        <ChartCard title="Top Invoice Value" sub="Cumulative invoice value INR — Top 8" badge="Top 8" tall>
+          <Bar
+            data={{
+              labels: supsByVal.labels.map((l) => shorten(l, 24)),
+              datasets: [{
+                label: 'Invoice Value (INR)',
+                data: supsByVal.data,
+                backgroundColor: PALETTE.bar,
+                borderRadius: 5,
+                maxBarThickness: 22,
+              }],
+            }}
+            options={{
+              indexAxis: 'y',
+              responsive: true,
+              maintainAspectRatio: false,
+              animation: { duration: 700 },
+              layout: { padding: { right: 56 } },
+              plugins: {
+                legend: { display: false },
+                datalabels: {
+                  anchor: 'end', align: 'right', offset: 4,
+                  color: '#0d1f3c', font: LABEL_FONT,
+                  formatter: (v) => fmtCompactInr(v), clip: false,
+                },
+                tooltip: { ...TT, callbacks: {
+                  title: (items) => supsByVal.labels[items[0].dataIndex] || items[0].label,
+                  label: (ctx) => ` ${fmtCompactInr(ctx.raw)}`,
+                }},
+              },
+              scales: {
+                x: { grid: { color: '#e8eef5' }, ticks: { ...tick, callback: fmtCompactInrAxis }, beginAtZero: true, grace: '18%' },
+                y: { grid: { display: false }, ticks: { ...tick, font: { size: 11.5 }, color: '#1e293b' } },
+              },
+            }}
+          />
+        </ChartCard>
 
+      </div>
+
+      <div className="charts-row cr2">
         <ChartCard title="Plant Distribution" sub="Shipments by destination unit" tall>
           <Doughnut
             data={{
@@ -654,44 +748,7 @@ export default function DashboardCharts({ stats, onChartClick }) {
         </ChartCard>
       </div>
 
-      <div className="charts-row cr2">
-        <ChartCard title="Top Invoice Value" sub="Cumulative invoice value INR — Top 8" badge="Top 8" tall>
-          <Bar
-            data={{
-              labels: supsByVal.labels.map((l) => shorten(l, 24)),
-              datasets: [{
-                label: 'Invoice Value (INR)',
-                data: supsByVal.data,
-                backgroundColor: PALETTE.bar,
-                borderRadius: 5,
-                maxBarThickness: 22,
-              }],
-            }}
-            options={{
-              indexAxis: 'y',
-              responsive: true,
-              maintainAspectRatio: false,
-              animation: { duration: 700 },
-              layout: { padding: { right: 56 } },
-              plugins: {
-                legend: { display: false },
-                datalabels: {
-                  anchor: 'end', align: 'right', offset: 4,
-                  color: '#0d1f3c', font: LABEL_FONT,
-                  formatter: (v) => fmtCompactInr(v), clip: false,
-                },
-                tooltip: { ...TT, callbacks: {
-                  title: (items) => supsByVal.labels[items[0].dataIndex] || items[0].label,
-                  label: (ctx) => ` ${fmtCompactInr(ctx.raw)}`,
-                }},
-              },
-              scales: {
-                x: { grid: { color: '#e8eef5' }, ticks: { ...tick, callback: fmtCompactInrAxis }, beginAtZero: true, grace: '18%' },
-                y: { grid: { display: false }, ticks: { ...tick, font: { size: 11.5 }, color: '#1e293b' } },
-              },
-            }}
-          />
-        </ChartCard>
+      <div className="charts-row">
 
         <ChartCard title="Estimated CFS Cost vs Actual CFS Cost" sub="Approximate vs final CFS charges by month" tall>
           <Bar
